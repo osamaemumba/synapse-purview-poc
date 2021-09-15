@@ -1,0 +1,48 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "utcValue": {
+        "type": "string",
+        "defaultValue": "[utcNow()]"
+      },
+      "location": {
+        "type": "string",
+        "metadata": {
+          "description": "Specifies the Azure location where the identity will be created."
+        }
+      },
+      "factoryName": {
+        "type": "string"
+      }
+    },
+    "variables": {
+      "dsIdentityName": "dsId",
+      "adfRG": "[resourceGroup().name]"
+    },
+    "resources": [
+      {
+        "type": "Microsoft.Resources/deploymentScripts",
+        "apiVersion": "2020-10-01",
+        "name": "runAdfPipeline",
+        "location": "[parameters('location')]",
+        "kind": "AzurePowerShell",
+        "dependsOn": [],
+        "identity": {
+          "type": "UserAssigned",
+          "userAssignedIdentities": {
+            "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
+          }
+        },
+        "properties": {
+          "forceUpdateTag": "[parameters('utcValue')]",
+          "azPowerShellVersion": "6.0",
+          "arguments": "[concat('-factoryName', ' ', concat('\\\"', parameters('factoryName'), '\\\"'), ' ', '-adfRG', ' ', concat('\\\"', variables('adfRG'), '\\\"'))]",
+          "scriptContent": "param([string] $factoryName = $factoryName, [string] $adfRG = $adfRG)\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\rInstall-Module -Name \"Az.DataFactory\" -Force\n\rConnect-AzAccount -Identity\n\rInvoke-AzDataFactoryV2Pipeline -ResourceGroupName $adfRG -DataFactoryName $factoryName -PipelineName \"NYC_Pipeline\"",
+          "timeout": "PT1H",
+          "cleanupPreference": "OnSuccess",
+          "retentionInterval": "P1D"
+        }
+      }
+    ]
+  }

@@ -1,0 +1,41 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "metadata": {
+              "description": "Specifies the Azure location where the key vault should be created."
+            }
+          },
+          "utcValue": {
+            "type": "string",
+            "defaultValue": "[utcNow()]"
+          }
+    },
+    "variables": {
+        "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
+        "configurePurviewFunctionName": "configurePurview",
+        "deletePurviewFunctionName": "deletePurview",
+        "configurePurviewFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('configurePurviewFunctionName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "triggerConfigurePurviewFunction",
+            "location": "[parameters('location')]",
+            "kind": "AzurePowerShell",
+            "dependsOn": [],
+            "properties": {
+              "forceUpdateTag": "[parameters('utcValue')]",
+              "azPowerShellVersion": "5.0",
+              "arguments": "[concat('-configurePurviewFunctionTriggerUrl', ' ', concat('\\\"', variables('configurePurviewFunctionTriggerUrl'), '\\\"'))]",
+              "scriptContent": "param([string] $configurePurviewFunctionTriggerUrl = $configurePurviewFunctionTriggerUrl)\n\r$val=0\n\rwhile($val -ne 15)\n\r{\n\r    try\n\r        {\n\r            $status = [int](Invoke-WebRequest $configurePurviewFunctionTriggerUrl -UseBasicParsing).StatusCode\n\r        }\n\r    catch\n\r        {\n\r            $val++\n\r            Start-Sleep -s 60\n\r            continue\n\r        }\n\r    if ($status -eq 200) {break}\n\r}",
+              "timeout": "PT1H",
+              "cleanupPreference": "OnSuccess",
+              "retentionInterval": "P1D"
+            }
+          }
+    ]
+}

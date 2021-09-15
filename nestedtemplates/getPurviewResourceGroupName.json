@@ -1,0 +1,96 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "utcValue": {
+      "type": "string",
+      "defaultValue": "[utcNow()]"
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies the Azure location where the identity will be created."
+      }
+    },
+    "newPurviewAccountName": {
+      "type": "string"
+    },
+    "existingPurviewAccountName": {
+      "type": "string"
+    },
+    "newOrExistingPurviewAccount": {
+      "type": "string"
+    },
+    "aadAppClientId": {
+      "type": "string"
+    },
+    "keyVaultName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "dsIdentityName": "dsId"
+  },
+  "resources": [
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "type": "Microsoft.Resources/deploymentScripts",
+      "apiVersion": "2020-10-01",
+      "name": "getNewPurviewResourceGroupName",
+      "location": "[parameters('location')]",
+      "kind": "AzurePowerShell",
+      "dependsOn": [],
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
+        }
+      },
+      "properties": {
+        "forceUpdateTag": "[parameters('utcValue')]",
+        "azPowerShellVersion": "6.0",
+        "arguments": "[concat('-newPurviewAccountName', ' ', concat('\\\"', parameters('newPurviewAccountName'), '\\\"'), ' ', '-keyVaultName', ' ', concat('\\\"', parameters('keyVaultName'), '\\\"'), ' ', '-aadAppClientId', ' ', concat('\\\"', parameters('aadAppClientId'), '\\\"'))]",
+        "scriptContent": "param([string] $newPurviewAccountName = $newPurviewAccountName, [string] $keyVaultName = $keyVaultName, [string] $aadAppClientId = $aadAppClientId)\n\r$newPurviewAccountName\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\rInstall-Module -Name \"Az.Resources\" -Force\n\r$secret = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name \"aadAppClientSecret\" -AsPlainText\n\r$PWord = ConvertTo-SecureString -String $secret -AsPlainText -Force\n\r$User = $aadAppClientId\n\r$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord\n\rConnect-AzAccount -Credential $Credential -Tenant 'b790f6ff-34c5-4074-bc2e-2f6be41e5870' -ServicePrincipal\n\rImport-Module -Name \"Az.Resources\" -Force\n\r$purviewResourceGroup=(Get-AzResource -Name $newPurviewAccountName).ResourceGroupName\n\r$purviewResourceGroup\n\r$DeploymentScriptOutputs = @{}\n\r$DeploymentScriptOutputs['newPurviewResourceGroup'] = $purviewResourceGroup",
+        "timeout": "PT1H",
+        "cleanupPreference": "OnSuccess",
+        "retentionInterval": "P1D"
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'existing')]",
+      "type": "Microsoft.Resources/deploymentScripts",
+      "apiVersion": "2020-10-01",
+      "name": "getExistingPurviewResourceGroupName",
+      "location": "[parameters('location')]",
+      "kind": "AzurePowerShell",
+      "dependsOn": [],
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
+        }
+      },
+      "properties": {
+        "forceUpdateTag": "[parameters('utcValue')]",
+        "azPowerShellVersion": "6.0",
+        "arguments": "[concat('-existingPurviewAccountName', ' ', concat('\\\"', parameters('existingPurviewAccountName'), '\\\"'), ' ', '-keyVaultName', ' ', concat('\\\"', parameters('keyVaultName'), '\\\"'), ' ', '-aadAppClientId', ' ', concat('\\\"', parameters('aadAppClientId'), '\\\"'))]",
+        "scriptContent": "param([string] $existingPurviewAccountName = $existingPurviewAccountName, [string] $keyVaultName = $keyVaultName, [string] $aadAppClientId = $aadAppClientId)\n\r$existingPurviewAccountName\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\rInstall-Module -Name \"Az.Resources\" -Force\n\r$secret = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name \"aadAppClientSecret\" -AsPlainText\n\r$PWord = ConvertTo-SecureString -String $secret -AsPlainText -Force\n\r$User = $aadAppClientId\n\r$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord\n\rConnect-AzAccount -Credential $Credential -Tenant 'b790f6ff-34c5-4074-bc2e-2f6be41e5870' -ServicePrincipal\n\rImport-Module -Name \"Az.Resources\" -Force\n\r$purviewResourceGroup=(Get-AzResource -Name $existingPurviewAccountName).ResourceGroupName\n\r$purviewResourceGroup\n\r$DeploymentScriptOutputs = @{}\n\r$DeploymentScriptOutputs['existingPurviewResourceGroup'] = $purviewResourceGroup",
+        "timeout": "PT1H",
+        "cleanupPreference": "OnSuccess",
+        "retentionInterval": "P1D"
+      }
+    }
+  ],
+  "outputs": {
+    "newPurviewResourceGroup": {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "value": "[reference('getNewPurviewResourceGroupName').outputs.newPurviewResourceGroup]",
+      "type": "string"
+    },
+    "existingPurviewResourceGroup": {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'existing')]",
+      "value": "[reference('getExistingPurviewResourceGroupName').outputs.existingPurviewResourceGroup]",
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "location": {
+        "type": "string"
+      }
+    },
+      "variables": {
+        "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
+        "appInsightsName": "[variables('functionAppName')]",
+        "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'azfunctions')]",
+        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "configurePurviewFunctionName": "configurePurview",
+        "deletePurviewFunctionName": "deletePurview"
+      },
+  "resources": [ 
+    {
+        "type": "Microsoft.Storage/storageAccounts",
+        "name": "[variables('storageAccountName')]",
+        "apiVersion": "2019-06-01",
+        "location": "[parameters('location')]",
+        "kind": "StorageV2",
+        "sku": {
+            "name": "Standard_LRS"
+        }
+    },
+    {
+        "apiVersion": "2015-05-01",
+        "name": "[variables('appInsightsName')]",
+        "type": "Microsoft.Insights/components",
+        "kind": "web",
+        "location": "[parameters('location')]",
+        "tags": {
+            "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', variables('functionAppName'))]": "Resource"
+        },
+        "properties": {
+            "Application_Type": "web",
+            "ApplicationId": "[variables('appInsightsName')]"
+        }
+    },
+    {
+        "apiVersion": "2015-08-01",
+        "type": "Microsoft.Web/sites",
+        "name": "[variables('functionAppName')]",
+        "location": "[parameters('location')]",
+        "identity": {
+            "type": "SystemAssigned"
+        },
+        "kind": "functionapp",
+        "dependsOn": [
+            "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+            "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "properties": {
+            "siteConfig": {
+                "appSettings": [
+                    {
+                        "name": "AzureWebJobsStorage",
+                        "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountId'),'2019-06-01').keys[0].value)]"
+                    },
+                    {
+                        "name": "FUNCTIONS_WORKER_RUNTIME",
+                        "value": "node"
+                    },
+                    {
+                        "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                        "value": "[reference(resourceId('microsoft.insights/components/', variables('appInsightsName')), '2015-05-01').InstrumentationKey]"
+                    },
+                    {
+                        "name": "FUNCTIONS_EXTENSION_VERSION",
+                        "value": "~3"
+                    },
+                    {
+                        "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                        "value": "10.14.1"
+                    },
+                    {
+                        "name": "Project",
+                        "value": "src"
+                    }
+                ]
+            }
+        },
+        "resources": [
+            {
+                "apiVersion": "2018-11-01",
+                "name": "web",
+                "type": "sourcecontrols",
+                "dependsOn": [
+                  "[resourceId('Microsoft.Web/sites/', variables('functionAppName'))]"
+                ],
+                "properties": {
+                  "RepoUrl": "https://github.com/osamaemumba/synapse-purview-poc",
+                  "branch": "main",
+                  "IsManualIntegration": true
+                }
+           }
+        ]
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+        "type": "string",
+        "value": "[variables('functionAppName')]"
+    }
+}
+}

@@ -1,0 +1,70 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "keyVaultName": {
+        "type": "string",
+        "metadata": {
+          "description": "Specifies the name of the key vault."
+        }
+      },
+      "location": {
+        "type": "string"
+      },
+      "functionAppName": {
+        "type": "string"
+      }
+    },
+
+    "variables": {
+        "dsIdentityName": "dsId",
+        "tenantId": "[subscription().tenantId]"
+    },
+
+    "resources": [
+      {
+        "type": "Microsoft.KeyVault/vaults",
+        "apiVersion": "2019-09-01",
+        "name": "[parameters('keyVaultName')]",
+        "location": "[parameters('location')]",
+        "properties": {
+          "tenantId": "[variables('tenantId')]",
+          "accessPolicies": [
+            {
+                "tenantId": "[variables('tenantId')]",
+                "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2018-02-01', 'Full').identity.principalId]",
+                "permissions": {
+                    "keys": [],
+                    "secrets": [
+                        "Get",
+                        "Set",
+                        "Delete",
+                        "Purge"
+                    ],
+                    "certificates": []
+                }
+            },
+            {
+              "tenantId": "[variables('tenantId')]",
+              "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName')), '2018-11-30').principalId]",
+              "permissions": {
+                  "keys": [],
+                  "secrets": [
+                      "Get"
+                  ],
+                  "certificates": []
+              }
+          }
+        ],
+          "sku": {
+            "name": "Standard",
+            "family": "A"
+          },
+          "networkAcls": {
+            "defaultAction": "Allow",
+            "bypass": "AzureServices"
+          }
+        }
+      }
+    ]
+  }

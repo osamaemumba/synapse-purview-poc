@@ -1,0 +1,118 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "aadAppClientId": {
+        "type": "string",
+        "metadata": {
+          "description": "The client Id of azure active directory app/service principal"
+        }
+      },
+      "storageAccountName": {
+        "type": "string"
+      },
+      "dataLakeAccountName": {
+        "type": "string"
+      },
+      "keyVaultName": {
+        "type": "string"
+      },
+      "purviewAccountName": {
+        "type": "string"
+      },
+      "newOrExistingPurviewAccount": {
+        "type": "string",
+        "allowedValues": [
+          "new",
+          "existing"
+        ],
+        "metadata": {
+          "description": "Create a new purview account or use an existing one"
+        }
+      },
+      "purviewResourceGroup": {
+        "type": "string"
+      }
+    },
+      "variables": {
+        "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
+        "configurePurviewFunctionName": "configurePurview",
+        "deletePurviewFunctionName": "deletePurview",
+        "tenantId": "[subscription().tenantId]",
+        "roleAssignmentName": "[guid(resourceGroup().id)]"
+      },
+  "resources": [
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2018-09-01-preview",
+      "name": "[variables('roleAssignmentName')]",
+      "dependsOn": [],
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')]",
+        "principalId": "[reference(resourceId(parameters('purviewResourceGroup'),'Microsoft.Purview/accounts', parameters('purviewAccountName')), '2020-12-01-preview', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal",
+        "scope": "[resourceGroup().id]"
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites/functions",
+      "apiVersion": "2020-06-01",
+      "name": "[format('{0}/{1}', variables('functionAppName'), variables('configurePurviewFunctionName'))]",
+      "properties": {
+        "config": {
+            "bindings": [
+                {
+                  "authLevel": "anonymous",
+                  "type": "httpTrigger",
+                  "direction": "in",
+                  "name": "req",
+                  "methods": [
+                    "get",
+                    "post"
+                  ]
+                },
+                {
+                  "type": "http",
+                  "direction": "out",
+                  "name": "res"
+                }
+              ]
+        },
+        "files": {
+          "index.js": "[concat('var axios = require(\"axios\");\nvar qs = require(\"qs\");\nvar uuid = require(\"uuid\");\nvar fs = require(\"fs\")\n\nconst { exec } = require(\"child_process\");\nconst { DefaultAzureCredential } = require(\"@azure/identity\");\nconst { SecretClient } = require(\"@azure/keyvault-secrets\");\n\nvar data_source_names = \"\";\nvar glossary_term_guids = \"\";\n\nfunction azuread_auth(tenant_id, client_id, client_secret, resource_url) {\n    var data = qs.stringify({\n        \"grant_type\": \"client_credentials\",\n        \"client_id\": `${client_id}`,\n        \"client_secret\": `${client_secret}`,\n        \"resource\": `${resource_url}` \n    });\n\n    var config = {\n    headers: { \n        \"Content-Type\": \"application/x-www-form-urlencoded\"\n        }\n    };\n\n    return axios.post(`https://login.microsoftonline.com/${tenant_id}/oauth2/token`, data, config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\nfunction create_data_source(access_token, Endpoint, kind, baseUrl, dataSourceName, api_version=\"2018-12-01-preview\") {\n    data_source_names = data_source_names + `${dataSourceName},`\n\n    var data = {\n        \"kind\": `${kind}`,\n        \"properties\": {\n            \"endpoint\": `${baseUrl}`\n        }\n    };\n\n    var config = {\n    headers: { \n        \"Content-type\": \"application/json\",\n        \"Authorization\": `Bearer ${access_token}`\n        }\n    };\n\n    return axios.put(`${Endpoint}/datasources/${dataSourceName}?api-version=${api_version}`, data, config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\nfunction create_scan(access_token, Endpoint, kind, dataSourceName, scanName, api_version=\"2018-12-01-preview\") {\n    var data = {\n        \"kind\": `${kind}`\n    };\n\n    var config = {\n    headers: { \n        \"Content-type\": \"application/json\",\n        \"Authorization\": `Bearer ${access_token}`\n        }\n    };\n\n    return axios.put(`${Endpoint}/datasources/${dataSourceName}/scans/${scanName}?api-version=${api_version}`, data, config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\nfunction run_scan(access_token, Endpoint, dataSourceName, scanName, runId, scanLevel, api_version=\"2018-12-01-preview\") {\n    var data = {};\n\n    var config = {\n    headers: { \n        \"Content-type\": \"application/json\",\n        \"Authorization\": `Bearer ${access_token}`\n        }\n    };\n\n    return axios.put(`${Endpoint}/datasources/${dataSourceName}/scans/${scanName}/runs/${runId}?scanLevel=${scanLevel}&api-version=${api_version}`, data, config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\nfunction create_term_template(access_token, Endpoint, template_name, template_description, attribute_name, attribute_description) {\n    var data = {\n        \"termTemplateDefs\": [\n                {\n                    \"name\":`${template_name}`,\n                    \"description\":`${template_description}`,\n                    \"attributeDefs\":[\n                        {\n                        \"name\":`${attribute_name}`,\n                        \"description\":`${attribute_description}`,\n                        \"isOptional\":\"true\",\n                        \"typeName\":\"string\",\n                        \"options\":\n                            {\n                            \"isDisabled\":\"false\"\n                            }\n                        }\n                    ]\n                    }\n                ]\n            };\n\n    var config = {\n    headers: { \n        \"Content-type\": \"application/json\",\n        \"Authorization\": `Bearer ${access_token}`\n        }\n    };\n\n    return axios.post(`${Endpoint}/catalog/api/atlas/v2/types/typedefs`, data, config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\nasync function get_glossary_details(access_token, account_endpoint) {\n    var config = {\n   \n        headers: { \n            \"Authorization\": `Bearer ${access_token}`\n        }\n    };\n\n    return axios.get(`${account_endpoint}/catalog/api/atlas/v2/glossary`, config)\n        .then(response => response.data)\n        .catch(error => error);\n}\n\nfunction create_glossary_term(access_token, account_endpoint, template_name, term_name, glossary_guid, term_status=\"Draft\") {\n    var obj = {};\n    // obj[template_name] = {};  // Pass a term template name as argument in function call below, or comment this line for System Default term template.\n    \n    var data = {\n        \"name\":`${term_name}`,\n        \"anchor\": {\n            \"glossaryGuid\":`${glossary_guid}`\n            },\n        \"status\":`${term_status}`,\n        \"nickName\":`${term_name}`,\n        \n        \"attributes\": obj\n        };\n\n    var config = {\n    headers: { \n        \"Content-type\": \"application/json\",\n        \"Authorization\": `Bearer ${access_token}`\n        }\n    };\n\n    return axios.post(`${account_endpoint}/catalog/api/atlas/v2/glossary/term?includeTermHierarchy=true`, data, config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\nfunction sleep(ms) {\n return new Promise(\n resolve => setTimeout(resolve, ms)\n);\n }\n\nmodule.exports = async function (context, req) {\n    context.log(\"JavaScript HTTP trigger function processed a request.\");\n\n\n    // ############################\n    // AZURE AD AUTHENTICATION\n    // ############################\n\n    // Setting up values to be used\n    const keyVaultName = \"',parameters('keyVaultName'),'\";\n    const KVUri = \"https://\" + keyVaultName + \".vault.azure.net\";\n    const tenant_id = \"',variables('tenantId'),'\"\n    const client_id = \"',parameters('aadAppClientId'),'\"\n    const resource_url = \"https://purview.azure.net/\"\n\n    // Setting up client for KeyVault\n    const credential = new DefaultAzureCredential();\n    const client = new SecretClient(KVUri, credential);\n\n    // Retrieving secret from KeyVault\n    const retrievedSecret = await client.getSecret(\"aadAppClientSecret\");\n    const client_secret=retrievedSecret.value;\n\n    // Retrieve access_token from AzureAuth function\n    const token = await azuread_auth(tenant_id, client_id, client_secret, resource_url);\n    const access_token = token.access_token;\n\n    // #################\n    // ENDPOINTS\n    // #################\n\n    // Setting up values to be used\n    const scan_endpoint = \"https://',parameters('purviewAccountName'),'.scan.purview.azure.com\";     // Azure Purview scan endpoint\n    const account_endpoint = \"https://',parameters('purviewAccountName'),'.purview.azure.com\";      // Azure Purview account endpoint\n\n    const scan_level = \"Full\";                                                  // Possible options: Full, Incremental\n\n    // #################\n    // BUSINESS GLOSSARY\n    // #################\n\n    let glossary_details = await get_glossary_details(access_token, account_endpoint);\n    // Setting up values to be used\n    const glossary_guid = glossary_details[0].guid;\n    const template_name = \"Purview-QS\";\n    const term_name = \"qs-demo-term\";\n\n    // Creating glossary term\n    const response_create_term = await create_glossary_term(access_token, account_endpoint, template_name, term_name, glossary_guid);\n    context.log(response_create_term)\n    glossary_term_guids = glossary_term_guids + `${response_create_term.guid},`         // appending to GUID string\n\n\n    // #######################\n    // REGISTER BLOB DATA SOURCE\n    // #######################\n\n    // Setting up values to be used\n    const blob_kind = \"AzureStorage\";\n    const blob_storageBaseUrl = \"https://',parameters('storageAccountName'),'.blob.core.windows.net/\";           // Azure blob service url\n    const blob_data_source_name = \"DataSource-Blob\";                                      // Data Source name to be created\n    const blob_scan_name = \"qs-blob-scan\";\n    const blob_scan_kind = \"AzureStorageMsi\";\n    const blob_scan_run_id = uuid.v1();\n\n    // Creating Blob Data Source\n    const response_data_source = await create_data_source(access_token, scan_endpoint, blob_kind, blob_storageBaseUrl, blob_data_source_name);\n    context.log(response_data_source)\n    // Creating Scan\n    const response_blob_scan_creation = await create_scan(access_token, scan_endpoint, blob_scan_kind, blob_data_source_name, blob_scan_name);\n    context.log(response_blob_scan_creation)\n    // Running scan\n    const response_blob_run_scan = await run_scan(access_token, scan_endpoint, blob_data_source_name, blob_scan_name, blob_scan_run_id, scan_level);\n    context.log(response_blob_run_scan)\n\n\n    // ########################\n    // REGISTER ADLS2 DATA SOURCE\n    // ########################\n\n    // Setting up values to be used\n    const adls_kind = \"AdlsGen2\"\n    const adls_source_name = \"DataSource-AdlsGen2\"                                                // Data Source name to be created\n    const adls_blob_storageBaseUrl = \"https://',parameters('dataLakeAccountName'),'.dfs.core.windows.net/\"              // Adls2 service url\n    const adls_scan_name = \"qs-adls-scan\";\n    const adls_scan_kind = \"AdlsGen2Msi\";\n    const adls_scan_run_id = uuid.v1();\n\n    // Creating AdlsGen2 Data Source\n    const response_adls_data_source = await create_data_source(access_token, scan_endpoint, adls_kind, adls_blob_storageBaseUrl, adls_source_name);\n    context.log(response_adls_data_source)\n    // Creating Scan\n    const response_adls_scan_creation = await create_scan(access_token, scan_endpoint, adls_scan_kind, adls_source_name, adls_scan_name);\n    context.log(response_adls_scan_creation)\n    // Running scan\n    const response_adls_run_scan = await run_scan(access_token, scan_endpoint, adls_source_name, adls_scan_name, adls_scan_run_id, scan_level);\n    context.log(response_adls_run_scan)\n\n\n    // #################\n    // UPDATING SECRETS\n    // #################\n\n    // Adding source names and term guids to Azure keyvault secrets\n    const result_sources = await client.setSecret(\"DataSources\", data_source_names);\n    context.log(result_sources)\n    const result_terms = await client.setSecret(\"TermGUIDs\", glossary_term_guids);\n    context.log(result_terms)\n\n    context.res = {\n        body: `AzurePurview Creation function triggered successfully..`\n    };\n}')]"
+        }
+      },
+      "dependsOn": []
+    },
+    {
+        "type": "Microsoft.Web/sites/functions",
+        "apiVersion": "2020-06-01",
+        "name": "[format('{0}/{1}', variables('functionAppName'), variables('deletePurviewFunctionName'))]",
+        "properties": {
+          "config": {
+              "bindings": [
+                  {
+                    "authLevel": "anonymous",
+                    "type": "httpTrigger",
+                    "direction": "in",
+                    "name": "req",
+                    "methods": [
+                      "get",
+                      "post"
+                    ]
+                  },
+                  {
+                    "type": "http",
+                    "direction": "out",
+                    "name": "res"
+                  }
+                ]
+          },
+          "files": {
+            "index.js": "[concat('var axios = require(\"axios\");\nvar qs = require(\"qs\");\n\nconst { DefaultAzureCredential } = require(\"@azure/identity\");\nconst { SecretClient } = require(\"@azure/keyvault-secrets\");\n\n\nfunction azuread_auth(tenant_id, client_id, client_secret, resource_url) {\n    var data = qs.stringify({\n        \"grant_type\": \"client_credentials\",\n        \"client_id\": `${client_id}`,\n        \"client_secret\": `${client_secret}`,\n        \"resource\": `${resource_url}` \n    });\n\n    var config = {\n    headers: { \n        \"Content-Type\": \"application/x-www-form-urlencoded\"\n        }\n    };\n\n    return axios.post(`https://login.microsoftonline.com/${tenant_id}/oauth2/token`, data, config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\nfunction delete_data_source(access_token, Endpoint, dataSourceName, api_version=\"2018-12-01-preview\") {\n    var config = {\n    method: \"delete\",\n    url: `${Endpoint}/datasources/${dataSourceName}?api-version=${api_version}`,\n    headers: { \n        \"Authorization\": `Bearer ${access_token}`\n        }\n    };\n\n    return axios(config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\nfunction delete_glossary_term(access_token, Endpoint, term_guid) {\n    var config = {\n        method: \"delete\",\n        url: `${Endpoint}/catalog/api/atlas/v2/glossary/term/${term_guid}`,\n        headers: { \n            \"Authorization\": `Bearer ${access_token}`\n            }\n        };\n\n    return axios(config)\n    .then(response => response.data)\n    .catch(error => error);\n}\n\n\n\nmodule.exports = async function (context, req) {\n    context.log(\"JavaScript HTTP trigger function processed a request.\");\n    \n    // ############################\n    // AZURE AD AUTHENTICATION\n    // ############################\n\n    // Setting up values to be used\n    const keyVaultName = \"',parameters('keyVaultName'),'\";\n    const KVUri = \"https://\" + keyVaultName + \".vault.azure.net\";\n    const tenant_id = \"',variables('tenantId'),'\"\n    const client_id = \"',parameters('aadAppClientId'),'\"\n    const resource_url = \"https://purview.azure.net/\"\n\n    // Setting up client for KeyVault\n    const credential = new DefaultAzureCredential();\n    const client = new SecretClient(KVUri, credential);\n\n    // Retrieving secret from KeyVault\n    const retrievedSecret = await client.getSecret(\"aadAppClientSecret\");\n    const client_secret=retrievedSecret.value;\n\n    // Retrieve access_token from AzureAuth function\n    const token = await azuread_auth(tenant_id, client_id, client_secret, resource_url);\n    const access_token = token.access_token;\n\n    // Retrieving data sources names from KeyVault to delete\n    const retrieved_data_sources = await client.getSecret(\"DataSources\");\n    let data_source_names = retrieved_data_sources.value;\n\n    // Retrieving term GUIDs from KeyVault to delete\n    const retrieved_term_guids = await client.getSecret(\"TermGUIDs\");\n    let glossary_term_guids = retrieved_term_guids.value;\n\n    // Filtering/cleaning up the values to be used further\n    data_source_names = data_source_names.split(\",\").filter(value => value!=\"\");\n    context.log(`Data Sources to be deleted are: ${data_source_names}`);\n    glossary_term_guids = glossary_term_guids.split(\",\").filter(value => value!=\"\");\n    context.log(`Glossary terms to be deleted have GUID: ${glossary_term_guids}`);\n\n\n    // ##################\n    // DELETE RESOURCES\n    // ##################\n\n    // Setting up values to be used\n    const scan_endpoint = \"https://',parameters('purviewAccountName'),'.scan.purview.azure.com\";     // Azure Purview scan endpoint\n    const account_endpoint = \"https://',parameters('purviewAccountName'),'.purview.azure.com\";      // Azure Purview account endpoint\n\n    // Deleting Data Sources\n    for (let source_name of data_source_names) {\n        const response_delete_source = await delete_data_source(access_token, scan_endpoint, source_name);\n        context.log(response_delete_source)\n    }\n\n    // Deleting glossary terms\n    for (let term_guid of glossary_term_guids) {\n        const response_delete_term = await delete_glossary_term(access_token, account_endpoint, term_guid);\n        context.log(response_delete_term)\n    }\n\n    // Deleting secrets created\n    for (let secret_name of [\"DataSources\", \"TermGUIDs\"]) {\n        const deletePoller = await client.beginDeleteSecret(secret_name);\n        const delete_response = await deletePoller.pollUntilDone();\n        context.log(delete_response)\n        await client.purgeDeletedSecret(secret_name);\n    }\n\n    context.res = {\n        body: `AzurePurview Deletion function triggered successfully..`\n    };\n}')]"
+          }
+        },
+        "dependsOn": []
+      }
+  ]
+}
