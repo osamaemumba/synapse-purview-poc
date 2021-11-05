@@ -16,7 +16,6 @@
     "variables": {
         "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
         "configurePurviewFunctionName": "configurePurview",
-        "deletePurviewFunctionName": "deletePurview",
         "configurePurviewFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('configurePurviewFunctionName'))]"
     },
     "resources": [

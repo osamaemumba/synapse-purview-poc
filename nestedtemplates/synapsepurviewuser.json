@@ -1,208 +1,54 @@
 {
-    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-        "utcValue": {
-            "defaultValue": "[utcNow()]",
-            "type": "String"
-        },
-        "location": {
-            "type": "string"
-        },
-        "synapseName": {
-            "type": "string"
-        },
-        "purviewAccountName": {
-            "type": "string"
-        },
-        "aadAppClientId": {
-          "type": "string"
-        },
-        "keyVaultName": {
-          "type": "string"
-        }
-
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "utcValue": {
+      "defaultValue": "[utcNow()]",
+      "type": "String"
     },
-    "variables": {
-        "factoryName": "[concat('tempFactory', uniqueString(resourceGroup().id))]",
-        "factoryId": "[concat('Microsoft.DataFactory/factories/', variables('factoryName'))]",
-        "dsIdentityName": "dsId",
-        "adfRG": "[resourceGroup().name]",
-        "tenantId":"[subscription().tenantId]"
+    "keyVaultName": {
+      "type": "String"
     },
-    "resources": [
-        {
-            "type": "Microsoft.DataFactory/factories",
-            "apiVersion": "2018-06-01",
-            "name": "[variables('factoryName')]",
-            "location": "[parameters('location')]",
-            "tags": {},
-            "identity": {
-                "type": "SystemAssigned"
-            }
+    "synapseName": {
+      "type": "String"
+    },
+    "purviewAccountName": {
+      "type": "String"
+    },
+    "userAzureLoginId": {
+      "type": "String"
+    },
+    "userAzureLoginPassword": {
+      "type": "securestring"
+    }
+  },
+  "variables": {
+      "dsIdentityName": "dsId",
+      "tenantId":"[subscription().tenantId]"
+  },
+  "resources": [
+      {
+        "type": "Microsoft.Resources/deploymentScripts",
+        "apiVersion": "2020-10-01",
+        "name": "synapsePurviewUser",
+        "location": "eastus",
+        "dependsOn": [],
+        "identity": {
+          "type": "UserAssigned",
+          "userAssignedIdentities": {
+            "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
+          }
         },
-        {
-            "name": "[concat(variables('factoryName'), '/createPurviewUser')]",
-            "type": "Microsoft.DataFactory/factories/pipelines",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "activities": [
-                    {
-                        "name": "Lookup1",
-                        "type": "Lookup",
-                        "dependsOn": [],
-                        "policy": {
-                            "timeout": "7.00:00:00",
-                            "retry": 0,
-                            "retryIntervalInSeconds": 30,
-                            "secureOutput": false,
-                            "secureInput": false
-                        },
-                        "userProperties": [],
-                        "typeProperties": {
-                            "source": {
-                                "type": "SqlDWSource",
-                                "sqlReaderQuery": {
-                                    "value": "IF NOT EXISTS (SELECT * FROM sys.procedures WHERE name = 'createPurviewUserSp')\nBEGIN\nEXEC('CREATE PROCEDURE createPurviewUserSp\nAS\nCREATE USER [@{pipeline().parameters.Purview_Account_Name}] FROM EXTERNAL PROVIDER\nEXEC sp_addrolemember [db_datareader], [@{pipeline().parameters.Purview_Account_Name}]')\nselect Count(*) from sys.symmetric_keys;\nEND\nELSE\nBEGIN\n    select Count(*) from sys.symmetric_keys;\nEND",
-                                    "type": "Expression"
-                                },
-                                "queryTimeout": "02:00:00",
-                                "partitionOption": "None"
-                            },
-                            "dataset": {
-                                "referenceName": "AzureSynapseAnalyticsTable2",
-                                "type": "DatasetReference",
-                                "parameters": {}
-                            }
-                        }
-                    },
-                    {
-                        "name": "Stored procedure1",
-                        "type": "SqlServerStoredProcedure",
-                        "dependsOn": [
-                            {
-                                "activity": "Lookup1",
-                                "dependencyConditions": [
-                                    "Succeeded"
-                                ]
-                            }
-                        ],
-                        "policy": {
-                            "timeout": "7.00:00:00",
-                            "retry": 0,
-                            "retryIntervalInSeconds": 30,
-                            "secureOutput": false,
-                            "secureInput": false
-                        },
-                        "userProperties": [],
-                        "typeProperties": {
-                            "storedProcedureName": "[[dbo].[createPurviewUserSp]"
-                        },
-                        "linkedServiceName": {
-                            "referenceName": "AzureSynapseAnalytics1",
-                            "type": "LinkedServiceReference"
-                        }
-                    }
-                ],
-                "policy": {
-                    "elapsedTimeMetric": {},
-                    "cancelAfter": {}
-                },
-                "parameters": {
-                    "Purview_Account_Name": {
-                        "type": "string",
-                        "defaultValue": "[parameters('purviewAccountName')]"
-                    }
-                },
-                "annotations": []
-            },
-            "dependsOn": [
-                "[variables('factoryId')]",
-                "[concat(variables('factoryId'), '/datasets/AzureSynapseAnalyticsTable2')]",
-                "[concat(variables('factoryId'), '/linkedServices/AzureSynapseAnalytics1')]"
-            ]
-        },
-        {
-            "name": "[concat(variables('factoryName'), '/AzureSynapseAnalytics1')]",
-            "type": "Microsoft.DataFactory/factories/linkedServices",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "annotations": [],
-                "type": "AzureSqlDW",
-                "typeProperties": {
-                    "connectionString": "[concat('Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=', parameters('synapseName'),'.sql.azuresynapse.net;Initial Catalog=demoSQLPool')]"
-                }
-            },
-            "dependsOn": [
-                "[variables('factoryId')]"
-            ]
-        },
-        {
-            "name": "[concat(variables('factoryName'), '/AzureSynapseAnalyticsTable2')]",
-            "type": "Microsoft.DataFactory/factories/datasets",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "linkedServiceName": {
-                    "referenceName": "AzureSynapseAnalytics1",
-                    "type": "LinkedServiceReference"
-                },
-                "annotations": [],
-                "type": "AzureSqlDWTable",
-                "schema": [],
-                "typeProperties": {
-                    "schema": "",
-                    "table": ""
-                }
-            },
-            "dependsOn": [
-                "[variables('factoryId')]",
-                "[concat(variables('factoryId'), '/linkedServices/AzureSynapseAnalytics1')]"
-            ]
-        },
-        {
-            "type": "Microsoft.Synapse/workspaces/administrators",
-            "apiVersion": "2021-06-01-preview",
-            "name": "[concat(parameters('synapseName'), '/', 'activeDirectory')]",
-            "location": "[parameters('location')]",
-            "dependsOn": [
-                "[variables('factoryId')]"
-            ],
-            "properties": 
-                {
-                    "administratorType": "ActiveDirectory",
-                    "login": "[variables('factoryName')]",
-                    "sid": "[reference(concat('Microsoft.DataFactory/factories/', variables('factoryName')), '2018-06-01', 'Full').identity.principalId]",
-                    "tenantId": "[variables('tenantId')]"
-                }
-        },
-        {
-            "type": "Microsoft.Resources/deploymentScripts",
-            "apiVersion": "2020-10-01",
-            "name": "synapsepurviewuser",
-            "location": "eastus",
-            "kind": "AzurePowerShell",
-            "dependsOn": [
-                "[variables('factoryId')]",
-                "[concat(variables('factoryId'), '/datasets/AzureSynapseAnalyticsTable2')]",
-                "[concat(variables('factoryId'), '/linkedServices/AzureSynapseAnalytics1')]",
-                "[concat(variables('factoryId'), '/pipelines/createPurviewUser')]",
-                "[concat(parameters('synapseName'), '/', 'activeDirectory')]"
-            ],
-            "identity": {
-              "type": "UserAssigned",
-              "userAssignedIdentities": {
-                "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
-              }
-            },
-            "properties": {
-              "forceUpdateTag": "[parameters('utcValue')]",
-              "azPowerShellVersion": "5.0",
-              "arguments": "[concat('-factoryName', ' ', concat('\\\"', variables('factoryName'), ' ', '-keyVaultName', ' ', concat('\\\"', parameters('keyVaultName'), '\\\"'), ' ', '-aadAppClientId', ' ', concat('\\\"', parameters('aadAppClientId'), '\\\"'), ' ', '-adfRG', ' ', concat('\\\"', variables('adfRG'), '\\\"'), ' ', '-tenantId', ' ', concat('\\\"', variables('tenantId'), '\\\"'))]",
-              "scriptContent": "param([string] $factoryName = $factoryName, [string] $keyVaultName = $keyVaultName, [string] $aadAppClientId = $aadAppClientId, [string] $adfRG = $adfRG, [string] $tenantId = $tenantId)\n\rInstall-Module -Name \"Az.DataFactory\" -Force\n\rInstall-Module -Name \"Az.Synapse\" -Force\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\rInstall-Module -Name \"Az.Resources\" -Force\n\r$secret = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name \"aadAppClientSecret\" -AsPlainText\n\r$PWord = ConvertTo-SecureString -String $secret -AsPlainText -Force\n\r$User = $aadAppClientId\n\r$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord\n\rConnect-AzAccount -Credential $Credential -Tenant $tenantId -ServicePrincipal\n\rInvoke-AzDataFactoryV2Pipeline -ResourceGroupName $adfRG -DataFactoryName $factoryName -PipelineName \"createPurviewUser\"",
-              "timeout": "PT1H",
-              "cleanupPreference": "OnSuccess",
-              "retentionInterval": "P1D"
-            }
+        "kind": "AzurePowerShell",
+        "properties": {
+          "forceUpdateTag": "[parameters('utcValue')]",
+          "azPowerShellVersion": "6.4",
+          "arguments": "[concat('-purviewAccountName', ' ', concat('\\\"', parameters('purviewAccountName'), '\\\"'), ' ', '-serverFQDN', ' ', concat('\\\"', parameters('synapseName'), '.database.windows.net\\\"'), ' ', '-keyVaultName', ' ', concat('\\\"', parameters('keyVaultName'), '\\\"'), ' ', '-userAzureLoginId', ' ', concat('\\\"', parameters('userAzureLoginId'), '\\\"'), ' ', '-tenantId', ' ', concat('\\\"', variables('tenantId'), '\\\"'), ' ', '-synapseName', ' ', concat('\\\"', parameters('synapseName'), '\\\"'), ' ', '-userAzureLoginPassword', ' ', concat('\\\"', parameters('userAzureLoginPassword'), '\\\"'))]",
+          "scriptContent": "param([string] $purviewAccountName = $purviewAccountName, $serverFQDN = $serverFQDN, [string] $keyVaultName = $keyVaultName, [string] $userAzureLoginId = $userAzureLoginId, [string] $synapseName = $synapseName, [string] $userAzureLoginPassword = $userAzureLoginPassword, [string] $tenantId = $tenantId)\n\rInstall-Module -Name \"Az.Synapse\" -RequiredVersion 0.16.0 -Force\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\rInstall-Module -Name \"Az.Resources\" -Force\n\r$PWord = ConvertTo-SecureString -String $userAzureLoginPassword -AsPlainText -Force\n\r$User = $userAzureLoginId\n\r$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord\n\rConnect-AzAccount -Credential $Credential\n\rSet-AzSynapseSqlActiveDirectoryAdministrator -WorkspaceName $synapseName -DisplayName $synapseName\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/linkedService/purviewUserSynaseLinkedservice.json\" -OutFile ~/purviewUserSynaseLinkedservice.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/dataset/purviewUserSynapseDataset.json\" -OutFile ~/purviewUserSynapseDataset.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/pipeline/Create_Purview_MSI_User.json\" -OutFile ~/Create_Purview_MSI_User.json\n\r$updatedPipelineContent = (Get-Content -path ~/Create_Purview_MSI_User.json -Raw) | ForEach-Object {$_.replace('<purview>', $purviewAccountName).replace('<server>', $serverFQDN)}\n\r$updatedPipelineContent | Set-Content -path ~/Create_Purview_MSI_User_Updated.json\n\rSet-AzSynapseLinkedService -WorkspaceName $synapseName -Name purviewUserSynaseLinkedservice -DefinitionFile \"~/purviewUserSynaseLinkedservice.json\"\n\rSet-AzSynapseDataset -WorkspaceName $synapseName -Name purviewUserSynapseDataset -DefinitionFile \"~/purviewUserSynapseDataset.json\"\n\rSet-AzSynapsePipeline -WorkspaceName $synapseName -Name Create_Purview_MSI_User -DefinitionFile ~/Create_Purview_MSI_User_Updated.json\n\r$pipelineRunId=(Invoke-AzSynapsePipeline -WorkspaceName $synapseName -PipelineName Create_Purview_MSI_User).RunId\n\rwhile($true)\n\r{               \n\r        $pipelineStatus = (Get-AzSynapsePipelineRun -WorkspaceName asdfghjktyu56 -PipelineRunId $pipelineRunId).Status\n\r        if ($pipelineStatus -eq \"Succeeded\") {break}\n\r        else {Start-Sleep -s 60;continue}\n\r}",
+          "timeout": "PT1H",
+          "cleanupPreference": "OnSuccess",
+          "retentionInterval": "P1D"
         }
+      }
     ]
-}
+  }

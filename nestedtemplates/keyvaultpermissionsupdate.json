@@ -13,6 +13,9 @@
       },
       "functionAppName": {
         "type": "string"
+      },
+      "userObjectId": {
+        "type": "string"
       }
     },
 
@@ -30,6 +33,24 @@
         "properties": {
           "tenantId": "[variables('tenantId')]",
           "accessPolicies": [
+            {
+              "tenantId": "[variables('tenantId')]",
+              "objectId": "[parameters('userObjectId')]",
+              "permissions": {
+                  "keys": [],
+                  "secrets": [
+                    "Get",
+                    "List",
+                    "Set",
+                    "Delete",
+                    "Recover",
+                    "Backup",
+                    "Restore",
+                    "Purge"
+                  ],
+                  "certificates": []
+              }
+            },
             {
                 "tenantId": "[variables('tenantId')]",
                 "objectId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2018-02-01', 'Full').identity.principalId]",
