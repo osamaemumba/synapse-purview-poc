@@ -55,6 +55,18 @@
       }
     },
     {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2018-09-01-preview",
+      "name": "[variables('roleAssignmentName')]",
+      "dependsOn": [],
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
+        "principalId": "[reference(resourceId(parameters('purviewResourceGroup'),'Microsoft.Purview/accounts', parameters('purviewAccountName')), '2020-12-01-preview', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal",
+        "scope": "[resourceGroup().id]"
+      }
+    },
+    {
       "type": "Microsoft.Web/sites/functions",
       "apiVersion": "2020-06-01",
       "name": "[format('{0}/{1}', variables('functionAppName'), variables('configurePurviewFunctionName'))]",

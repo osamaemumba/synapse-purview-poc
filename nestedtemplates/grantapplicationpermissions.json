@@ -1,0 +1,37 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "utcValue": {
+        "type": "string",
+        "defaultValue": "[utcNow()]"
+      },
+      "userAzureLoginId": {
+        "type": "String"
+      },
+      "userAzureLoginPassword": {
+        "type": "securestring"
+      },
+      "aadAppClientId": {
+        "type": "string"
+      }
+    },
+    "resources": [
+      {
+        "type": "Microsoft.Resources/deploymentScripts",
+        "apiVersion": "2020-10-01",
+        "name": "grantApplicationPermissions",
+        "location": "[resourceGroup().location]",
+        "kind": "AzureCLI",
+        "properties": {
+          "forceUpdateTag": "[parameters('utcValue')]",
+          "AzCliVersion": "2.15.0",
+          "timeout": "PT30M",
+          "arguments": "[concat(parameters('userAzureLoginId'),' ', parameters('userAzureLoginPassword'),' ', parameters('aadAppClientId'))]",
+          "scriptContent": "az login -u $1 -p $2; a=$(az ad sp list --query \"[?appDisplayName=='Microsoft Graph'].{permissions:appRoles}[0].permissions[?value=='RoleManagement.ReadWrite.Directory'].{id: id}\" --all -o tsv); az ad app permission add --id $3 --api 00000003-0000-0000-c000-000000000000  --api-permission $a=Role; sleep 80; az ad app permission admin-consent --id $3",
+          "cleanupPreference": "OnSuccess",
+          "retentionInterval": "P1D"
+        }
+      }
+    ]
+  }

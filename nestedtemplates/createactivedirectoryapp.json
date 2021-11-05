@@ -1,0 +1,66 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "utcValue": {
+        "type": "string",
+        "defaultValue": "[utcNow()]"
+      },
+      "userAzureLoginId": {
+        "type": "String"
+      },
+      "userAzureLoginPassword": {
+        "type": "String"
+      },
+      "keyVaultName": {
+        "type": "String"
+      },
+      "location": {
+        "type": "string"
+      }
+    },
+    "variables": {},
+    "resources": [
+      {
+        "type": "Microsoft.Resources/deploymentScripts",
+        "apiVersion": "2020-10-01",
+        "name": "createAzureActiveDirectoryApp",
+        "location": "[parameters('location')]",
+        "kind": "AzurePowerShell",
+        "dependsOn": [],
+        "identity": {
+          "type": "UserAssigned",
+          "userAssignedIdentities": {
+            "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', 'dsId')]": {}
+          }
+        },
+        "properties": {
+          "forceUpdateTag": "[parameters('utcValue')]",
+          "azPowerShellVersion": "5.0",
+          "arguments": "[concat('-userAzureLoginId', ' ', concat('\\\"', parameters('userAzureLoginId'), '\\\"'), ' ', '-userAzureLoginPassword', ' ', concat('\\\"', parameters('userAzureLoginPassword'), '\\\"'), ' ', '-keyVaultName', ' ', concat('\\\"', parameters('keyVaultName'), '\\\"'))]",
+          "scriptContent": "param([string] $userAzureLoginId = $userAzureLoginId, [string] $keyVaultName = $keyVaultName)\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\r$PWord = ConvertTo-SecureString -String $userAzureLoginPassword -AsPlainText -Force\n\r$User = $userAzureLoginId\n\r$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord\n\rConnect-AzAccount -Credential $Credential\n\rImport-Module Az.Resources\n\r$timestamp=Get-Date -Format 'MM-dd-yyyy-HH-mm-ss'\n\r$ServicePrincipalName = 'purview-synapse-poc-'+$timestamp\n\r$ServicePrincipal = New-AzAdServicePrincipal -DisplayName $ServicePrincipalName\n\r$obj = (Get-AzADApplication -DisplayName $ServicePrincipalName).ObjectId\n\r$appClientSecret = New-Guid\n\r$date = Get-Date\n\r$appClientSecretSecureString = ConvertTo-SecureString $appClientSecret -AsPlainText -Force\n\r$newCredential = New-AzADAppCredential -ObjectId $obj -Password $appClientSecretSecureString -StartDate $date -EndDate $date.AddYears(1)\n\r$tenantID = (Get-AzSubscription -SubscriptionName $subscriptionName).TenantId\n\r$appClientID = $ServicePrincipal.ApplicationId\n\r$userObjectId=(Get-AzADUser -UserPrincipalName $azureUserId).Id\n\r$DeploymentScriptOutputs = @{}\n\r$DeploymentScriptOutputs['tenantID'] = $tenantID\n\r$DeploymentScriptOutputs['appClientID'] = $appClientID\n\r$DeploymentScriptOutputs['appClientSecret'] = $appClientSecret\n\r$DeploymentScriptOutputs['userObjectId'] = $userObjectId",
+          "timeout": "PT1H",
+          "cleanupPreference": "OnSuccess",
+          "retentionInterval": "P1D"
+        }
+      }
+    ],
+    "outputs": {
+      "tenantID": {
+        "value": "[reference('createAzureActiveDirectoryApp').outputs.tenantID]",
+        "type": "string"
+      },
+      "appClientID": {
+        "value": "[reference('createAzureActiveDirectoryApp').outputs.appClientID]",
+        "type": "string"
+      },
+      "appClientSecret": {
+        "value": "[reference('createAzureActiveDirectoryApp').outputs.appClientSecret]",
+        "type": "string"
+      },
+      "userObjectId": {
+        "value": "[reference('createAzureActiveDirectoryApp').outputs.userObjectId]",
+        "type": "string"
+      }
+    }
+  }
