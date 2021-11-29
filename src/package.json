@@ -1,5 +1,5 @@
 {
-  "name": "node_function",
+  "name": "test-function-api",
   "version": "1.0.0",
   "description": "",
   "scripts": {
@@ -7,11 +7,15 @@
     "test": "echo \"No tests yet...\""
   },
   "dependencies": {
+    "@azure/identity": "",
+    "@azure/keyvault-secrets": "",
     "axios": "",
+    "azure-functions-core-tools": "^2.7.3188",
+    "fast-csv": "^4.3.6",
+    "got": "^11.8.2",
+    "keytar": "",
     "qs": "",
-    "uuid": "",
-    "@azure/identity": "^1.0.3",
-    "@azure/keyvault-secrets": "^4.0.4"
+    "uuid": ""
   },
   "devDependencies": {}
 }
