@@ -9,7 +9,9 @@
       "type": "string"
     }
   },
-  "variables": {},
+  "variables": {
+    "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+  },
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
@@ -22,5 +24,11 @@
       "kind": "StorageV2",
       "properties": {}
     }
-  ]
+  ],
+  "outputs": {
+    "blobConnectionString": {
+      "type": "string",
+      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storageAccountName'),';AccountKey=',concat(listKeys(variables('storageAccountId'),'2021-06-01').keys[0].value),';EndpointSuffix=core.windows.net')]"
+    }
+  }
 }

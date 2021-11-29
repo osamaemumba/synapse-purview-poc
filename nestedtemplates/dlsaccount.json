@@ -9,7 +9,9 @@
       "type": "string"
     }
   },
-  "variables": {},
+  "variables": {
+    "dataLakeAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('dataLakeAccountName'))]"
+  },
   "resources": [
      {
       "type": "Microsoft.Storage/storageAccounts",
@@ -26,5 +28,11 @@
         "isHnsEnabled": true
       }
     }
-  ]
+  ],
+  "outputs": {
+    "dlsAccessKey": {
+      "type": "string",
+      "value": "[concat(listKeys(variables('dataLakeAccountId'),'2021-06-01').keys[0].value)]"
+    }
+  }
 }

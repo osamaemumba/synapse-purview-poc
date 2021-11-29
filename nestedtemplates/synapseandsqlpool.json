@@ -16,13 +16,15 @@
       },
       "purviewAccountName": {
         "type": "string"
+      },
+      "purviewResourceGroup": {
+        "type": "string"
       }
     },
     "variables": {
       "sqlPoolName": "demoSQLPool",
       "dlsName": "[concat('synapsedls', uniquestring(resourceGroup().id))]",
-      "dlsFsName": "defaultfilesystem",
-      "purviewResourceId": "[reference(resourceId(parameters('purviewResourceGroup'),'Microsoft.Purview/accounts', parameters('purviewAccountName')), '2020-12-01-preview', 'Full').identity.principalId]"
+      "dlsFsName": "defaultfilesystem"
     },
     "resources": [
       {
@@ -67,7 +69,7 @@
           ],
           "properties": {
             "purviewConfiguration": {
-              "purviewResourceId": "[variables('purviewResourceId')]"
+              "purviewResourceId": "[resourceId(parameters('purviewResourceGroup'),'Microsoft.Purview/accounts', parameters('purviewAccountName'))]"
             },
             "defaultDataLakeStorage": {
               "accountUrl": "[reference(variables('dlsName')).primaryEndpoints.dfs]",

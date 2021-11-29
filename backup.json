@@ -1,0 +1,153 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "utcValue": {
+        "defaultValue": "[utcNow()]",
+        "type": "String"
+      },
+      "dataLakeAccountName": {
+        "type": "String"
+      },
+      "storageAccountName": {
+        "type": "String"
+      },
+      "keyVaultName": {
+        "type": "String"
+      },
+      "location": {
+        "type": "string"
+      },
+      "sqlAdministratorLogin": {
+        "type": "String"
+      },
+      "synapseName": {
+        "type": "String"
+      },
+      "userAzureLoginId": {
+        "type": "String"
+      },
+      "userAzureLoginPassword": {
+        "type": "securestring"
+      },
+      "userObjectId": {
+        "type": "string"
+      }
+    },
+    "variables": {
+      "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
+      "dsIdentityName": "dsId",
+      "tenantId": "[subscription().tenantId]"
+    },
+    "resources": [
+        {
+          "type": "Microsoft.KeyVault/vaults",
+          "apiVersion": "2019-09-01",
+          "name": "[parameters('keyVaultName')]",
+          "location": "[parameters('location')]",
+          "properties": {
+            "tenantId": "[variables('tenantId')]",
+            "accessPolicies": [
+              {
+                "tenantId": "[variables('tenantId')]",
+                "objectId": "[parameters('userObjectId')]",
+                "permissions": {
+                    "keys": [],
+                    "secrets": [
+                      "Get",
+                      "List",
+                      "Set",
+                      "Delete",
+                      "Recover",
+                      "Backup",
+                      "Restore",
+                      "Purge"
+                    ],
+                    "certificates": []
+                }
+              },
+              {
+                "tenantId": "[variables('tenantId')]",
+                "objectId": "[reference(concat('Microsoft.Synapse/workspaces/', parameters('synapseName')), '2019-06-01-preview', 'Full').identity.principalId]",
+                "permissions": {
+                    "keys": [],
+                    "secrets": [
+                        "Get"
+                    ],
+                    "certificates": []
+                }
+              },
+              {
+                "tenantId": "[variables('tenantId')]",
+                "objectId": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2018-02-01', 'Full').identity.principalId]",
+                "permissions": {
+                    "keys": [],
+                    "secrets": [
+                        "Get",
+                        "Set",
+                        "Delete",
+                        "Purge"
+                    ],
+                    "certificates": []
+                }
+              },
+              {
+                "tenantId": "[variables('tenantId')]",
+                "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName')), '2018-11-30').principalId]",
+                "permissions": {
+                    "keys": [],
+                    "secrets": [
+                        "Get"
+                    ],
+                    "certificates": []
+                }
+              },
+              {
+                "tenantId": "[variables('tenantId')]",
+                "objectId": "[reference(concat('Microsoft.Synapse/workspaces/', parameters('synapseName')), '2019-06-01-preview', 'Full').identity.principalId]",
+                "permissions": {
+                    "keys": [],
+                    "secrets": [
+                        "Get"
+                    ],
+                    "certificates": []
+                }
+              }
+          ],
+            "sku": {
+              "name": "Standard",
+              "family": "A"
+            },
+            "networkAcls": {
+              "defaultAction": "Allow",
+              "bypass": "AzureServices"
+            }
+          }
+        },
+        {
+          "type": "Microsoft.Resources/deploymentScripts",
+          "apiVersion": "2020-10-01",
+          "name": "synapseWorkspaceArtifacts",
+          "location": "eastus",
+          "dependsOn": [
+            "[parameters('keyVaultName')]"
+          ],
+          "identity": {
+            "type": "UserAssigned",
+            "userAssignedIdentities": {
+              "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
+            }
+          },
+          "kind": "AzurePowerShell",
+          "properties": {
+            "forceUpdateTag": "[parameters('utcValue')]",
+            "azPowerShellVersion": "6.4",
+            "arguments": "[concat('-dataLakeAccountName', ' ', concat('\\\"https://', parameters('dataLakeAccountName'), '.dfs.core.windows.net/\\\"'), ' ', '-storageAccountName', ' ', concat('\\\"', parameters('storageAccountName'), '\\\"'), ' ', '-keyVaultName', ' ', concat('\\\"https://', parameters('keyVaultName'), '.vault.azure.net/\\\"'), ' ', '-serverFQDN', ' ', concat('\\\"', parameters('synapseName'), '.database.windows.net\\\"'), ' ', '-synapseName', ' ', concat('\\\"', parameters('synapseName'), '\\\"'), ' ', '-SQLLoginUsername', ' ', concat('\\\"', parameters('sqlAdministratorLogin'), '\\\"'), ' ', '-tenantId', ' ', concat('\\\"', variables('tenantId'), '\\\"'), ' ', '-userAzureLoginId', ' ', concat('\\\"', parameters('userAzureLoginId'), '\\\"'), ' ', '-userAzureLoginPassword', ' ', concat('\\\"', parameters('userAzureLoginPassword'), '\\\"'))]",
+            "scriptContent": "param([string] $dataLakeAccountName = $dataLakeAccountName, [string] $storageAccountName = $storageAccountName, [string] $keyVaultName = $keyVaultName, [string] $synapseName = $synapseName, [string] $serverFQDN = $serverFQDN, [string] $SQLLoginUsername = $SQLLoginUsername, [string] $tenantId = $tenantId, [string] $userAzureLoginId = $userAzureLoginId, [string] $userAzureLoginPassword = $userAzureLoginPassword)\n\rInstall-Module -Name \"Az.Synapse\" -RequiredVersion 0.16.0 -Force\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\rInstall-Module -Name \"Az.Resources\" -Force\n\r$PWord = ConvertTo-SecureString -String $userAzureLoginPassword -AsPlainText -Force\n\r$User = $userAzureLoginId\n\r$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord\n\rConnect-AzAccount -Credential $Credential\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/linkedService/HttpServerNYCTaxi.json\" -OutFile ~/HttpServerNYCTaxi.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/linkedService/SynapseAnalyticsSQLPoolLinkedservice.json\" -OutFile ~/SynapseAnalyticsSQLPoolLinkedservice.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/linkedService/KeyVaultLinkedService.json\" -OutFile ~/KeyVaultLinkedService.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/linkedService/AzureDataLakeNYC.json\" -OutFile ~/AzureDataLakeNYC.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/linkedService/AzureBlobStorageNYCSink.json\" -OutFile ~/AzureBlobStorageNYCSink.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/dataset/NYC_ADLS_Taxi_Source.json\" -OutFile ~/NYC_ADLS_Taxi_Source.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/dataset/NYC_Source_Data.json\" -OutFile ~/NYC_Source_Data.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/dataset/NYC_Taxi_ADLS_Sink.json\" -OutFile ~/NYC_Taxi_ADLS_Sink.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/dataset/NYC_Taxi_Blob_Sink.json\" -OutFile ~/NYC_Taxi_Blob_Sink.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/dataset/NYC_Taxi_Blob_Source.json\" -OutFile ~/NYC_Taxi_Blob_Source.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/dataset/NYC_Taxi_Data_Schema.json\" -OutFile ~/NYC_Taxi_Data_Schema.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/dataset/NYC_Taxi_Data_Table.json\" -OutFile ~/NYC_Taxi_Data_Table.json\n\rInvoke-WebRequest -Uri \"https://raw.githubusercontent.com/osamaemumba/synapse-test/main/pipeline/NYC_Pipeline.json\" -OutFile ~/NYC_Pipeline.json\n\r$updatedPipelineContent = (Get-Content -path ~/NYC_Pipeline.json -Raw) | ForEach-Object {$_.replace('<adls>', $dataLakeAccountName).replace('<sa>', $storageAccountName).replace('<kv>', $keyVaultName).replace('<sqllogin>', $SQLLoginUsername).replace('<server>', $serverFQDN)}\n\r$updatedPipelineContent | Set-Content -path ~/NYC_Pipeline_Updated.json\n\rSet-AzSynapseLinkedService -WorkspaceName $synapseName -Name HttpServerNYCTaxi -DefinitionFile \"~/HttpServerNYCTaxi.json\"\n\rSet-AzSynapseLinkedService -WorkspaceName $synapseName -Name KeyVaultLinkedService -DefinitionFile \"~/KeyVaultLinkedService.json\"\n\rSet-AzSynapseLinkedService -WorkspaceName $synapseName -Name AzureBlobStorageNYCSink -DefinitionFile \"~/AzureBlobStorageNYCSink.json\"\n\rSet-AzSynapseLinkedService -WorkspaceName $synapseName -Name AzureDataLakeNYC -DefinitionFile \"~/AzureDataLakeNYC.json\"\n\rSet-AzSynapseLinkedservice -WorkspaceName $synapseName -Name SynapseAnalyticsSQLPoolLinkedservice -DefinitionFile \"~/SynapseAnalyticsSQLPoolLinkedservice.json\"\n\rSet-AzSynapseDataset -WorkspaceName $synapseName -Name NYC_ADLS_Taxi_Source -DefinitionFile \"~/NYC_ADLS_Taxi_Source.json\"\n\rSet-AzSynapseDataset -WorkspaceName $synapseName -Name NYC_Source_Data -DefinitionFile \"~/NYC_Source_Data.json\"\n\rSet-AzSynapseDataset -WorkspaceName $synapseName -Name NYC_Taxi_ADLS_Sink -DefinitionFile \"~/NYC_Taxi_ADLS_Sink.json\"\n\rSet-AzSynapseDataset -WorkspaceName $synapseName -Name NYC_Taxi_Blob_Sink -DefinitionFile \"~/NYC_Taxi_Blob_Sink.json\"\n\rSet-AzSynapseDataset -WorkspaceName $synapseName -Name NYC_Taxi_Blob_Source -DefinitionFile \"~/NYC_Taxi_Blob_Source.json\"\n\rSet-AzSynapseDataset -WorkspaceName $synapseName -Name NYC_Taxi_Data_Schema -DefinitionFile \"~/NYC_Taxi_Data_Schema.json\"\n\rSet-AzSynapseDataset -WorkspaceName $synapseName -Name NYC_Taxi_Data_Table -DefinitionFile \"~/NYC_Taxi_Data_Table.json\"\n\rSet-AzSynapsePipeline -WorkspaceName $synapseName -Name NYC_Pipeline -DefinitionFile ~/NYC_Pipeline_Updated.json\n\r$pipelineRunId=(Invoke-AzSynapsePipeline -WorkspaceName $synapseName -PipelineName NYC_Pipeline).RunId\n\rwhile($true)\n\r{               \n\r        $pipelineStatus = (Get-AzSynapsePipelineRun -WorkspaceName $synapseName -PipelineRunId $pipelineRunId).Status\n\r        if (($pipelineStatus -eq \"Succeeded\") -or ($pipelineStatus -eq \"Failed\")) {break}\n\r        else {Start-Sleep -s 60;continue}\n\r}",
+            "timeout": "PT1H",
+            "cleanupPreference": "OnSuccess",
+            "retentionInterval": "P1D"
+          }
+        }
+      ]
+    }

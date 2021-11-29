@@ -15,22 +15,22 @@
     },
     "variables": {
         "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
-        "configurePurviewFunctionName": "configurePurview",
-        "configurePurviewFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('configurePurviewFunctionName'))]"
+        "assignDirectoryReadersRoleFunctionName": "assignDirectoryReadersRole",
+        "assignDirectoryReadersRoleFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('assignDirectoryReadersRoleFunctionName'))]"
     },
     "resources": [
         {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
-            "name": "triggerConfigurePurviewFunction",
+            "name": "triggerAssignDirectoryReadersRoleFunction",
             "location": "[parameters('location')]",
             "kind": "AzurePowerShell",
             "dependsOn": [],
             "properties": {
               "forceUpdateTag": "[parameters('utcValue')]",
               "azPowerShellVersion": "5.0",
-              "arguments": "[concat('-configurePurviewFunctionTriggerUrl', ' ', concat('\\\"', variables('configurePurviewFunctionTriggerUrl'), '\\\"'))]",
-              "scriptContent": "param([string] $configurePurviewFunctionTriggerUrl = $configurePurviewFunctionTriggerUrl)\n\rInvoke-WebRequest $configurePurviewFunctionTriggerUrl -UseBasicParsing",
+              "arguments": "[concat('-assignDirectoryReadersRoleFunctionTriggerUrl', ' ', concat('\\\"', variables('assignDirectoryReadersRoleFunctionTriggerUrl'), '\\\"'))]",
+              "scriptContent": "param([string] $assignDirectoryReadersRoleFunctionTriggerUrl = $assignDirectoryReadersRoleFunctionTriggerUrl)\n\rInvoke-WebRequest $assignDirectoryReadersRoleFunctionTriggerUrl -UseBasicParsing",
               "timeout": "PT1H",
               "cleanupPreference": "OnSuccess",
               "retentionInterval": "P1D"

@@ -1,38 +1,57 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-       "purviewAccountName": {
-         "type": "string",
-         "metadata": {
-           "description": "Name of the resource"
-         }
-       },
-       "location": {
-         "type": "string"
-       }
-    },
-    "resources": [
-      {
-        "name": "[parameters('purviewAccountName')]",
-        "type": "Microsoft.Purview/accounts",
-        "apiVersion": "2020-12-01-preview",
-        "location": "[parameters('location')]",
-        "identity": {
-          "type": "SystemAssigned"
-        },
-        "properties": {
-          "networkAcls": {
-            "defaultAction": "Allow"
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+      "location": {
+          "type": "string",
+          "metadata": {
+            "description": "Specifies the Azure location where the key vault should be created."
           }
         },
-        "dependsOn": [],
-        "sku": {
-          "name": "Standard",
-          "capacity": "4"
+        "utcValue": {
+          "type": "string",
+          "defaultValue": "[utcNow()]"
         },
-        "tags": {}
-      }
-    ],
-    "outputs": {}
-  }
+        "purviewAccountName": {
+          "type": "string"
+        },
+        "userAzureLoginId": {
+          "type": "String"
+        },
+        "userAzureLoginPassword": {
+          "type": "securestring"
+        }
+  },
+  "variables": {
+      "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
+      "createPurviewAccountFunctionName": "createPurviewAccount",
+      "createPurviewAccountFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('createPurviewAccountFunctionName'))]",
+      "resourceGroup": "[resourceGroup().name]",
+      "dsIdentityName": "dsId"
+  },
+  "resources": [
+      {
+          "type": "Microsoft.Resources/deploymentScripts",
+          "apiVersion": "2020-10-01",
+          "name": "triggerCreatePurviewAccountFunction",
+          "location": "[parameters('location')]",
+          "kind": "AzurePowerShell",
+          "dependsOn": [],
+          "identity": {
+            "type": "UserAssigned",
+            "userAssignedIdentities": {
+              "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
+            }
+          },
+          "properties": {
+            "forceUpdateTag": "[parameters('utcValue')]",
+            "azPowerShellVersion": "5.0",
+            "arguments": "[concat('-createPurviewAccountFunctionTriggerUrl', ' ', concat('\\\"', variables('createPurviewAccountFunctionTriggerUrl'), '\\\"'), ' ', '-userAzureLoginId', ' ', concat('\\\"', parameters('userAzureLoginId'), '\\\"'), ' ', '-userAzureLoginPassword', ' ', concat('\\\"', parameters('userAzureLoginPassword'), '\\\"'), ' ', '-resourceGroup', ' ', concat('\\\"', variables('resourceGroup'), '\\\"'), ' ', '-purviewAccountName', ' ', concat('\\\"', parameters('purviewAccountName'), '\\\"'))]",
+            "scriptContent": "param([string] $createPurviewAccountFunctionTriggerUrl = $createPurviewAccountFunctionTriggerUrl, [string] $userAzureLoginId = $userAzureLoginId, [string] $userAzureLoginPassword = $userAzureLoginPassword, [string] $resourceGroup = $resourceGroup, [string] $purviewAccountName = $purviewAccountName)\n\rInvoke-WebRequest $createPurviewAccountFunctionTriggerUrl -UseBasicParsing\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\rInstall-Module -Name \"Az.Purview\" -Force\n\rInstall-Module -Name \"Az.Resources\" -Force\n\r$PWord = ConvertTo-SecureString -String $userAzureLoginPassword -AsPlainText -Force\n\r$User = $userAzureLoginId\n\r$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord\n\rConnect-AzAccount -Credential $Credential\n\rwhile( $(Update-AzPurviewAccount -Name $purviewAccountName -ResourceGroupName $resourceGroup -Tag @{\"k\"=\"v\"}).ProvisioningState -ne \"Succeeded\") {\n\r$response = $(Update-AzPurviewAccount -Name $purviewAccountName -ResourceGroupName $resourceGroup -Tag @{\"k\"=\"v\"}).ProvisioningState\n\rStart-Sleep -s 15\n\r}",
+            "timeout": "PT1H",
+            "cleanupPreference": "OnSuccess",
+            "retentionInterval": "P1D"
+          }
+        }
+  ]
+}
