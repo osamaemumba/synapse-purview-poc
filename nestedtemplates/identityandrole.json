@@ -7,7 +7,7 @@
       }
     },
     "variables": {
-      "dsIdentityName": "dsId",
+      "dsIdentityName": "[toLower(concat('dsId, uniquestring(resourceGroup().id)))]",
       "dsRoleAssignmentId": "[guid(resourceGroup().id, variables('dsRoleDefinitionId'), resourceId('Microsoft.ManagedIdentity/identities', variables('dsIdentityName')))]",
       "dsRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '673868aa-7521-48a0-acc6-0f60742d39f5')]"
     },

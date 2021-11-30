@@ -92,7 +92,9 @@
       "name": "servicePrincipalDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
-      "dependsOn": [],
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','identityAndRole')]"
+      ],
       "properties": {
         "mode": "Incremental",
         "templatelink": {

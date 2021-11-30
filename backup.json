@@ -36,7 +36,7 @@
     },
     "variables": {
       "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
-      "dsIdentityName": "dsId",
+     "dsIdentityName": "[toLower(concat('dsId, uniquestring(resourceGroup().id)))]",
       "tenantId": "[subscription().tenantId]"
     },
     "resources": [

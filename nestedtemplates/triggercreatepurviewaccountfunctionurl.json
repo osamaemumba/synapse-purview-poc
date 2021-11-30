@@ -27,7 +27,7 @@
       "createPurviewAccountFunctionName": "createPurviewAccount",
       "createPurviewAccountFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('createPurviewAccountFunctionName'))]",
       "resourceGroup": "[resourceGroup().name]",
-      "dsIdentityName": "dsId"
+     "dsIdentityName": "[toLower(concat('dsId, uniquestring(resourceGroup().id)))]"
   },
   "resources": [
       {
