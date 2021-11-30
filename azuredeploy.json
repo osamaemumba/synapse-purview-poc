@@ -49,7 +49,7 @@
     "keyVaultName": "[toLower(concat(parameters('keyVaultName'),uniquestring(resourceGroup().id)))]",
     "synapseName": "[toLower(concat(parameters('synapseName'),uniquestring(resourceGroup().id)))]",
     "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
-    "location": "[resourceGroup().location]",
+    "location": "[resourceGroup().location]"
   },
   "resources": [
     {
