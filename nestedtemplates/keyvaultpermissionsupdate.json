@@ -23,7 +23,7 @@
     },
 
     "variables": {
-       "dsIdentityName": "[toLower(concat('dsId, uniquestring(resourceGroup().id)))]",
+       "dsIdentityName": "[toLower(concat('dsId', uniquestring(resourceGroup().id)))]",
         "tenantId": "[subscription().tenantId]"
     },
 
