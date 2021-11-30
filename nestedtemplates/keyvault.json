@@ -13,6 +13,15 @@
       },
       "aadAppClientSecret": {
           "type": "securestring"
+      },
+      "dlsAccessKey": {
+          "type": "securestring"
+      },
+      "blobConnectionString": {
+          "type": "securestring"
+      },
+      "sqlAdministratorLoginPassword": {
+          "type": "securestring"
       }
      
     },
@@ -20,6 +29,12 @@
     "variables": {
         "secretName": "aadAppClientSecret",
         "secretValue": "[parameters('aadAppClientSecret')]",
+        "dlsSecretName": "dlsAccessKey",
+        "dlsSecretValue": "[parameters('dlsAccessKey')]",
+        "blobSecretName": "blobConnectionString",
+        "blobSecretValue": "[parameters('blobConnectionString')]",
+        "sqlSecretName": "SQLLoginPassword",
+        "sqlSecretValue": "[parameters('sqlAdministratorLoginPassword')]",
         "tenantId": "[subscription().tenantId]"
     },
 
@@ -53,6 +68,42 @@
         ],
         "properties": {
           "value": "[variables('secretValue')]"
+        }
+      },
+      {
+        "type": "Microsoft.KeyVault/vaults/secrets",
+        "apiVersion": "2019-09-01",
+        "name": "[concat(parameters('keyVaultName'), '/', variables('dlsSecretName'))]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+        ],
+        "properties": {
+          "value": "[variables('dlsSecretValue')]"
+        }
+      },
+      {
+        "type": "Microsoft.KeyVault/vaults/secrets",
+        "apiVersion": "2019-09-01",
+        "name": "[concat(parameters('keyVaultName'), '/', variables('blobSecretName'))]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+        ],
+        "properties": {
+          "value": "[variables('blobSecretValue')]"
+        }
+      },
+      {
+        "type": "Microsoft.KeyVault/vaults/secrets",
+        "apiVersion": "2019-09-01",
+        "name": "[concat(parameters('keyVaultName'), '/', variables('sqlSecretName'))]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+        ],
+        "properties": {
+          "value": "[variables('sqlSecretValue')]"
         }
       }
     ]

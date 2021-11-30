@@ -1,0 +1,157 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "location": {
+        "type": "string"
+      },
+      "synapseName": {
+        "type": "String"
+      },
+      "sqlAdministratorLogin": {
+        "type": "String"
+      },
+      "sqlAdministratorLoginPassword": {
+        "type": "securestring"
+      }
+    },
+    "variables": {
+      "sqlPoolName": "demoSQLPool",
+      "dlsName": "[concat('synapsedls', uniquestring(resourceGroup().id))]",
+      "dlsFsName": "defaultfilesystem"
+    },
+    "resources": [
+      {
+        "type": "Microsoft.Storage/storageAccounts",
+        "apiVersion": "2019-06-01",
+        "name": "[variables('dlsName')]",
+        "location": "[parameters('location')]",
+        "sku": {
+          "name": "Standard_LRS"
+        },
+        "kind": "StorageV2",
+        "properties": {
+          "accessTier": "Hot",
+          "supportsHttpsTrafficOnly": true,
+          "isHnsEnabled": true
+      },
+        "resources": [
+            {
+              "name": "[concat('default/', variables('dlsFsName'))]",
+              "type": "blobServices/containers",
+              "apiVersion": "2019-06-01",
+              "dependsOn": [
+                "[variables('dlsName')]"
+              ],
+              "properties": {
+                "publicAccess": "None"
+              }
+            }
+          ]
+        },
+        {
+          "type": "Microsoft.Synapse/workspaces",
+          "apiVersion": "2019-06-01-preview",
+          "name": "[parameters('synapseName')]",
+          "location": "[parameters('location')]",
+          "identity": {
+            "type": "SystemAssigned"
+          },
+          "dependsOn": [
+            "[variables('dlsName')]",
+            "[variables('dlsFsName')]"
+          ],
+          "properties": {
+            "defaultDataLakeStorage": {
+              "accountUrl": "[reference(variables('dlsName')).primaryEndpoints.dfs]",
+              "filesystem": "[variables('dlsFsName')]"
+            },
+            "sqlAdministratorLogin": "[parameters('sqlAdministratorLogin')]",
+            "sqlAdministratorLoginPassword": "[parameters('sqlAdministratorLoginPassword')]",
+            "managedVirtualNetwork": "default"
+          },
+          "resources": [
+            {
+              "type": "firewallrules",
+              "apiVersion": "2019-06-01-preview",
+              "name": "allowAll",
+              "location": "[parameters('location')]",
+              "dependsOn": [ "[parameters('synapseName')]" ],
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "255.255.255.255"
+              }
+            },
+            {
+              "type": "firewallrules",
+              "apiVersion": "2019-06-01-preview",
+              "name": "AllowAllWindowsAzureIps",
+              "location": "[parameters('location')]",
+              "dependsOn": [ "[parameters('synapseName')]" ],
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+              }
+            },
+            {
+              "type": "managedIdentitySqlControlSettings",
+              "apiVersion": "2019-06-01-preview",
+              "name": "default",
+              "location": "[parameters('location')]",
+              "dependsOn": [ "[parameters('synapseName')]" ],
+              "properties": {
+                "grantSqlControlToManagedIdentity": {
+                  "desiredState": "Enabled"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "scope": "[concat('Microsoft.Storage/storageAccounts/', variables('dlsName'))]",
+          "type": "Microsoft.Authorization/roleAssignments",
+          "apiVersion": "2020-04-01-preview",
+          "name": "[guid(uniqueString(variables('dlsName')))]",
+          "location": "[parameters('location')]",
+          "dependsOn": [
+            "[parameters('synapseName')]"
+          ],
+          "properties": {
+            "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+            "principalId": "[reference(resourceId('Microsoft.Synapse/workspaces', parameters('synapseName')), '2019-06-01-preview', 'Full').identity.principalId]",
+            "principalType": "ServicePrincipal"
+          }
+        },
+        {
+            "type": "Microsoft.Synapse/workspaces/sqlPools",
+            "apiVersion": "2019-06-01-preview",
+            "name": "[concat(parameters('synapseName'), '/', variables('sqlPoolName'))]",
+            "location": "[parameters('location')]",
+            "sku": {
+              "name": "DW100c"
+            },
+            "dependsOn": [
+              "[parameters('synapseName')]"
+            ],
+            "properties": {
+              "createMode": "Default",
+              "collation": "SQL_Latin1_General_CP1_CI_AS"
+            },
+            "resources": [
+              {
+                "name": "current",
+                "type": "transparentDataEncryption",
+                "apiVersion": "2021-03-01",
+                "dependsOn": [
+                  "[variables('sqlPoolName')]",
+                  "[parameters('synapseName')]"
+                ],
+                "properties": {
+                  "status": "Enabled"
+                }
+              }
+            ]
+          }
+    ]
+
+    }

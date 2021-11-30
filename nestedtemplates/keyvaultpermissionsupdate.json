@@ -14,6 +14,9 @@
       "functionAppName": {
         "type": "string"
       },
+      "synapseName": {
+        "type": "string"
+      },
       "userObjectId": {
         "type": "string"
       }
@@ -68,6 +71,17 @@
             {
               "tenantId": "[variables('tenantId')]",
               "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName')), '2018-11-30').principalId]",
+              "permissions": {
+                  "keys": [],
+                  "secrets": [
+                      "Get"
+                  ],
+                  "certificates": []
+              }
+            },
+            {
+              "tenantId": "[variables('tenantId')]",
+              "objectId": "[reference(resourceId('Microsoft.Synapse/workspaces', parameters('synapseName')), '2019-06-01-preview', 'Full').identity.principalId]",
               "permissions": {
                   "keys": [],
                   "secrets": [
