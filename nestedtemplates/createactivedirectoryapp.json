@@ -16,7 +16,9 @@
         "type": "string"
       }
     },
-    "variables": {},
+    "variables": {
+      "dsIdentityName": "[toLower(concat('dsId', uniquestring(resourceGroup().id)))]"
+    },
     "resources": [
       {
         "type": "Microsoft.Resources/deploymentScripts",
@@ -28,7 +30,7 @@
         "identity": {
           "type": "UserAssigned",
           "userAssignedIdentities": {
-            "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', 'dsId')]": {}
+            "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
           }
         },
         "properties": {
