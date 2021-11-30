@@ -114,6 +114,34 @@
       }
     },
     {
+      "name": "grantApplicationPermissions",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','servicePrincipalDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/grantapplicationpermissions.json"
+        },
+        "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            },
+            "userAzureLoginId": {
+                "value": "[parameters('userAzureLoginId')]"
+            },
+            "userAzureLoginPassword": {
+                "value": "[parameters('userAzureLoginPassword')]"
+            },
+            "aadAppClientId": {
+                "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
+            }
+        }
+      }
+    },
+    {
       "name": "storageAccountDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",

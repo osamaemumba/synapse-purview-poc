@@ -14,6 +14,9 @@
       },
       "aadAppClientId": {
         "type": "string"
+      },
+      "location": {
+        "type": "string"
       }
     },
     "resources": [
@@ -21,7 +24,7 @@
         "type": "Microsoft.Resources/deploymentScripts",
         "apiVersion": "2020-10-01",
         "name": "grantApplicationPermissions",
-        "location": "[resourceGroup().location]",
+        "location": "[parameters('location')]",
         "kind": "AzureCLI",
         "properties": {
           "forceUpdateTag": "[parameters('utcValue')]",
