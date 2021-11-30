@@ -201,7 +201,7 @@
             "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
             "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
             "[resourceId('Microsoft.Resources/deployments','identityAndRole')]",
-            "[resourceId('Microsoft.Resources/deployments','synapseName')]"
+            "[resourceId('Microsoft.Resources/deployments','synapseDeployment')]"
         ],
         "properties": {
           "mode": "Incremental",
