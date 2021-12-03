@@ -273,8 +273,6 @@
         }
       }
     },
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    
     {
       "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
       "name": "functionAppUpdateOneWithNewPurviewAccountDeployment",
@@ -427,14 +425,13 @@
         }
       }
     },
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
     {
       "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
       "name": "purviewDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateDeploymentWithNewPurviewAccount')]"
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -502,7 +499,6 @@
         }
       }
     },
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
     {
       "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
       "name": "synapseWithNewPurviewAccountDeployment",
@@ -602,8 +598,6 @@
         }
       }
     },
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     {
       "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
       "name": "triggerAssignPurviewRolesFunctionWithNewPurviewAccount",
@@ -662,8 +656,6 @@
         }
       }
     },
-    //////////////////////////////////////////////////////////////////////
-
     {
       "name": "runSynapseDataPipeline",
       "type": "Microsoft.Resources/deployments",
@@ -719,10 +711,6 @@
         }
       }
     },
-
-
-    /////////////////////////////////////////////////////////////////////////
-    
     {
       "name": "assignDirectoryReadersRoleToSynapseDeployment",
       "type": "Microsoft.Resources/deployments",
@@ -858,17 +846,6 @@
         }
       }
     },
-
-
-
-
-
-
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     {
       "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
       "name": "triggerConfigurePurviewFunctionWithNewPurviewAccount",
