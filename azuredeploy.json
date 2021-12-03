@@ -290,6 +290,9 @@
           "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/functionappupdateone.json"
         },
         "parameters": {
+          "location": {
+            "value": "[variables('location')]"
+        },
           "aadAppClientId": {
             "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
           },
@@ -319,6 +322,9 @@
           "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/functionappupdateone.json"
         },
         "parameters": {
+          "location": {
+            "value": "[variables('location')]"
+        },
           "aadAppClientId": {
             "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
           },
