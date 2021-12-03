@@ -145,22 +145,14 @@
             "properties": {
               "createMode": "Default",
               "collation": "SQL_Latin1_General_CP1_CI_AS"
-            },
-            "resources": [
-              {
-                "name": "current",
-                "type": "transparentDataEncryption",
-                "apiVersion": "2021-03-01",
-                "dependsOn": [
-                  "[variables('sqlPoolName')]",
-                  "[parameters('synapseName')]"
-                ],
-                "properties": {
-                  "status": "Enabled"
-                }
-              }
-            ]
+            }
           }
-    ]
+    ],
+    "outputs": {
+      "synapseObjectId": {
+          "type": "string",
+          "value": "[reference(concat('Microsoft.Synapse/workspaces/', parameters('synapseName')), '2019-06-01-preview', 'Full').identity.principalId]"
+      }
+  }
 
     }

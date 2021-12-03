@@ -28,7 +28,7 @@
             "dependsOn": [],
             "properties": {
               "forceUpdateTag": "[parameters('utcValue')]",
-              "azPowerShellVersion": "5.0",
+              "azPowerShellVersion": "6.0",
               "arguments": "[concat('-assignDirectoryReadersRoleFunctionTriggerUrl', ' ', concat('\\\"', variables('assignDirectoryReadersRoleFunctionTriggerUrl'), '\\\"'))]",
               "scriptContent": "param([string] $assignDirectoryReadersRoleFunctionTriggerUrl = $assignDirectoryReadersRoleFunctionTriggerUrl)\n\rInvoke-WebRequest $assignDirectoryReadersRoleFunctionTriggerUrl -UseBasicParsing",
               "timeout": "PT1H",

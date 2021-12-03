@@ -2,6 +2,24 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "newOrExistingPurviewAccount": {
+      "type": "string",
+      "defaultValue": "new",
+      "allowedValues": [
+        "new",
+        "existing"
+      ],
+      "metadata": {
+        "description": "Create a new purview account or use an existing one"
+      }
+    },
+    "purviewAccountName": {
+      "type": "string",
+      "defaultValue": "purv",
+      "metadata": {
+        "description": "The name you provide will be appended with a unique sting to make it globally available. The Purview account name can contain only letters, numbers and hyphens. The first and last characters must be a letter or number. The hyphen(-) character must be immediately preceded and followed by a letter or number. Spaces are not allowed."
+      }
+    },
     "dataLakeAccountName": {
       "type": "string",
       "defaultValue": "dls",
@@ -49,7 +67,18 @@
     "keyVaultName": "[toLower(concat(parameters('keyVaultName'),uniquestring(resourceGroup().id)))]",
     "synapseName": "[toLower(concat(parameters('synapseName'),uniquestring(resourceGroup().id)))]",
     "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
-    "location": "[resourceGroup().location]"
+    "purviewAccountName": "[toLower(concat(parameters('purviewAccountName'),uniquestring(resourceGroup().id)))]",
+    "deletePurviewFunctionName": "deletePurview",
+    "configurePurviewFunctionName": "configurePurview",
+    "location": "[resourceGroup().location]",
+    "deletePurviewFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('deletePurviewFunctionName'))]",
+    "configurePurviewFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('configurePurviewFunctionName'))]",
+    "createPurviewAccountFunctionName": "createPurviewAccount",
+    "createPurviewAccountFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('createPurviewAccountFunctionName'))]",
+    "assignPurviewRolesFunctionName": "assignPurviewRoles",
+    "assignPurviewRolesFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('assignPurviewRolesFunctionName'))]",
+    "assignDirectoryReadersRoleFunctionName": "assignDirectoryReadersRole",
+    "assignDirectoryReadersRoleFunctionTriggerUrl": "[concat('http://', variables('functionAppName'), '.azurewebsites.net/api/', variables('assignDirectoryReadersRoleFunctionName'))]"
   },
   "resources": [
     {
@@ -57,7 +86,6 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','servicePrincipalDeployment')]"
       ],
@@ -182,32 +210,6 @@
       }
     },
     {
-      "name": "synapseDeployment",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2019-05-01",
-      "dependsOn": [],
-      "properties": {
-        "mode": "Incremental",
-        "templatelink": {
-          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/synapseandsqlpool1.json"
-        },
-        "parameters": {
-          "location": {
-              "value": "[variables('location')]"
-          },
-          "synapseName": {
-              "value": "[variables('synapseName')]"
-          },
-          "sqlAdministratorLogin": {
-              "value": "[parameters('sqlAdministratorLogin')]"
-          },
-          "sqlAdministratorLoginPassword": {
-              "value": "[parameters('sqlAdministratorLoginPassword')]"
-          }
-        }
-      }
-    },
-    {
       "name": "identityAndRole",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
@@ -231,8 +233,7 @@
         "dependsOn": [
             "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
             "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
-            "[resourceId('Microsoft.Resources/deployments','identityAndRole')]",
-            "[resourceId('Microsoft.Resources/deployments','synapseDeployment')]"
+            "[resourceId('Microsoft.Resources/deployments','identityAndRole')]"
         ],
         "properties": {
           "mode": "Incremental",
@@ -251,9 +252,6 @@
               },
               "userObjectId": {
                   "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
-              },
-              "synapseName": {
-                  "value": "[variables('synapseName')]"
               }
           }
         }
@@ -267,6 +265,668 @@
         "mode": "Incremental",
         "templatelink": {
           "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/functionapp.json"
+        },
+        "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            }
+        }
+      }
+    },
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "name": "functionAppUpdateOneWithNewPurviewAccountDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/functionappupdateone.json"
+        },
+        "parameters": {
+          "aadAppClientId": {
+            "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
+          },
+          "purviewAccountName": {
+              "value": "[variables('purviewAccountName')]"
+          },
+          "keyVaultName": {
+              "value": "[variables('keyVaultName')]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'existing')]",
+      "name": "functionAppUpdateOneWithExistingPurviewAccountDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/functionappupdateone.json"
+        },
+        "parameters": {
+          "aadAppClientId": {
+            "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
+          },
+          "purviewAccountName": {
+              "value": "[parameters('purviewAccountName')]"
+          },
+          "keyVaultName": {
+              "value": "[variables('keyVaultName')]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "name": "functionAppUpdateTwoWithNewPurviewAccountDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/functionappupdatetwo.json"
+        },
+        "parameters": {
+          "aadAppClientId": {
+            "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
+          },
+          "storageAccountName": {
+              "value": "[variables('storageAccountName')]"
+          },
+          "purviewAccountName": {
+              "value": "[variables('purviewAccountName')]"
+          },
+          "keyVaultName": {
+              "value": "[variables('keyVaultName')]"
+          },
+          "dataLakeAccountName": {
+              "value": "[variables('dataLakeAccountName')]"
+          },
+          "userObjectId": {
+              "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
+          },
+          "synapseObjectId": {
+              "value": "[reference('synapseWithNewPurviewAccountDeployment').outputs.synapseObjectId.value]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'existing')]",
+      "name": "functionAppUpdateTwoWithExistingPurviewAccountDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/functionappupdatetwo.json"
+        },
+        "parameters": {
+          "aadAppClientId": {
+            "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
+          },
+          "storageAccountName": {
+              "value": "[variables('storageAccountName')]"
+          },
+          "purviewAccountName": {
+              "value": "[parameters('purviewAccountName')]"
+          },
+          "keyVaultName": {
+              "value": "[variables('keyVaultName')]"
+          },
+          "dataLakeAccountName": {
+              "value": "[variables('dataLakeAccountName')]"
+          },
+          "userObjectId": {
+              "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
+          },
+          "synapseObjectId": {
+              "value": "[reference('synapseWithExistingPurviewAccountDeployment').outputs.synapseObjectId.value]"
+          }
+        }
+      }
+    },
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "name": "purviewDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateDeploymentWithNewPurviewAccount')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/triggercreatepurviewaccountfunctionurl.json"
+        },
+        "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            },
+            "purviewAccountName": {
+                "value": "[variables('purviewAccountName')]"
+            },
+            "keyVaultName": {
+                "value": "[variables('keyVaultName')]"
+            },
+            "userAzureLoginId": {
+                "value": "[parameters('userAzureLoginId')]"
+            },
+            "userAzureLoginPassword": {
+                "value": "[parameters('userAzureLoginPassword')]"
+            },
+            "aadAppClientId": {
+                "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
+            }
+        }
+      }
+    },
+    {
+      "name": "getPurviewResourceGroupName",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/getPurviewResourceGroupName.json"
+        },
+        "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            },
+            "newPurviewAccountName": {
+                "value": "[variables('purviewAccountName')]"
+            },
+            "existingPurviewAccountName": {
+                "value": "[parameters('purviewAccountName')]"
+            },
+            "newOrExistingPurviewAccount": {
+                "value": "[parameters('newOrExistingPurviewAccount')]"
+            },
+            "keyvaultName": {
+                "value": "[variables('keyVaultName')]"
+            },
+            "aadAppClientId": {
+              "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
+          }
+        }
+      }
+    },
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "name": "synapseWithNewPurviewAccountDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/synapseandsqlpool.json"
+        },
+        "parameters": {
+          "location": {
+              "value": "[variables('location')]"
+          },
+          "synapseName": {
+              "value": "[variables('synapseName')]"
+          },
+          "sqlAdministratorLogin": {
+              "value": "[parameters('sqlAdministratorLogin')]"
+          },
+          "sqlAdministratorLoginPassword": {
+              "value": "[parameters('sqlAdministratorLoginPassword')]"
+          },
+          "purviewAccountName": {
+              "value": "[variables('purviewAccountName')]"
+          },
+          "purviewResourceGroup": {
+              "value": "[reference('getPurviewResourceGroupName').outputs.newPurviewResourceGroup.value]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'existing')]",
+      "name": "synapseWithExistingPurviewAccountDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/synapseandsqlpool.json"
+        },
+        "parameters": {
+          "location": {
+              "value": "[variables('location')]"
+          },
+          "synapseName": {
+              "value": "[variables('synapseName')]"
+          },
+          "sqlAdministratorLogin": {
+              "value": "[parameters('sqlAdministratorLogin')]"
+          },
+          "sqlAdministratorLoginPassword": {
+              "value": "[parameters('sqlAdministratorLoginPassword')]"
+          },
+          "purviewAccountName": {
+              "value": "[parameters('purviewAccountName')]"
+          },
+          "purviewResourceGroup": {
+              "value": "[reference('getPurviewResourceGroupName').outputs.existingPurviewResourceGroup.value]"
+          }
+        }
+      }
+    },
+    {
+      "name": "sqlPoolTransparentDataEncryption",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/sqlpooltde.json"
+        },
+        "parameters": {
+          "location": {
+              "value": "[variables('location')]"
+          },
+          "synapseName": {
+              "value": "[variables('synapseName')]"
+          }
+        }
+      }
+    },
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "name": "triggerAssignPurviewRolesFunctionWithNewPurviewAccount",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/triggerassignpurviewrolesfunctionurl.json"
+        },
+        "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'existing')]",
+      "name": "triggerAssignPurviewRolesFunctionWithExistingPurviewAccount",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/triggerassignpurviewrolesfunctionurl.json"
+        },
+        "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            }
+        }
+      }
+    },
+    //////////////////////////////////////////////////////////////////////
+
+    {
+      "name": "runSynapseDataPipeline",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/synapsedatapipeline.json"
+        },
+        "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            },
+            "synapseName": {
+                "value": "[variables('synapseName')]"
+            },
+            "sqlAdministratorLogin": {
+                "value": "[parameters('sqlAdministratorLogin')]"
+            },
+            "keyVaultName": {
+                "value": "[variables('keyVaultName')]"
+            },
+            "userAzureLoginId": {
+                "value": "[parameters('userAzureLoginId')]"
+            },
+            "userAzureLoginPassword": {
+                "value": "[parameters('userAzureLoginPassword')]"
+            },
+            "dataLakeAccountName": {
+                "value": "[variables('dataLakeAccountName')]"
+            },
+            "storageAccountName": {
+                "value": "[variables('storageAccountName')]"
+            },
+            "userObjectId": {
+                "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
+            }
+        }
+      }
+    },
+
+
+    /////////////////////////////////////////////////////////////////////////
+    
+    {
+      "name": "assignDirectoryReadersRoleToSynapseDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','runSynapseDataPipeline')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/triggerassigndirectoryreadersrolefunctionurl.json"
+        },
+        "parameters": {
+          "location": {
+              "value": "[variables('location')]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "name": "synapsePurviewUserWithNewPurviewAccountDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','runSynapseDataPipeline')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','assignDirectoryReadersRoleToSynapseDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/synapsepurviewuser.json"
+        },
+        "parameters": {
+          "location": {
+              "value": "[variables('location')]"
+          },
+          "synapseName": {
+              "value": "[variables('synapseName')]"
+          },
+          "keyVaultName": {
+              "value": "[variables('keyVaultName')]"
+          },
+          "userObjectId": {
+              "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
+          },
+          "userAzureLoginId": {
+              "value": "[parameters('userAzureLoginId')]"
+          },
+          "userAzureLoginPassword": {
+              "value": "[parameters('userAzureLoginPassword')]"
+          },
+          "purviewAccountName": {
+              "value": "[variables('purviewAccountName')]"
+          }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'existing')]",
+      "name": "synapsePurviewUserWithExistingPurviewAccountDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','runSynapseDataPipeline')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','assignDirectoryReadersRoleToSynapseDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/synapsepurviewuser.json"
+        },
+        "parameters": {
+          "location": {
+              "value": "[variables('location')]"
+          },
+          "synapseName": {
+              "value": "[variables('synapseName')]"
+          },
+          "keyVaultName": {
+              "value": "[variables('keyVaultName')]"
+          },
+          "userObjectId": {
+              "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
+          },
+          "userAzureLoginId": {
+              "value": "[parameters('userAzureLoginId')]"
+          },
+          "userAzureLoginPassword": {
+              "value": "[parameters('userAzureLoginPassword')]"
+          },
+          "purviewAccountName": {
+              "value": "[parameters('purviewAccountName')]"
+          }
+        }
+      }
+    },
+
+
+
+
+
+
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
+      "name": "triggerConfigurePurviewFunctionWithNewPurviewAccount",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','runSynapseDataPipeline')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','assignDirectoryReadersRoleToSynapseDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/triggerconfigurepurviewfunctionurl.json"
+        },
+        "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            }
+        }
+      }
+    },
+    {
+      "condition": "[equals(parameters('newOrExistingPurviewAccount'),'existing')]",
+      "name": "triggerConfigurePurviewFunctionWithExistingPurviewAccount",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','runSynapseDataPipeline')]",
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','assignDirectoryReadersRoleToSynapseDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/triggerconfigurepurviewfunctionurl.json"
         },
         "parameters": {
             "location": {

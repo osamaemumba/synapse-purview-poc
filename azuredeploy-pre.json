@@ -1,0 +1,279 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "dataLakeAccountName": {
+        "type": "string",
+        "defaultValue": "dls",
+        "metadata": {
+          "description": "The name you provide will be appended with a unique sting to make it globally available. The field can contain only lowercase letters and numbers. Name must be between 1 and 11 characters."
+        }
+      },
+      "storageAccountName": {
+        "type": "string",
+        "defaultValue": "sa",
+        "metadata": {
+          "description": "The name you provide will be appended with a unique sting to make it globally available. The field can contain only lowercase letters and numbers. Name must be between 1 and 11 characters."
+        }
+      },
+      "keyVaultName": {
+        "type": "string",
+        "defaultValue": "kv",
+        "metadata": {
+          "description": "The name you provide will be appended with a unique sting to make it globally available. A vault's name must be between 1-11 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens."
+        }
+      },
+      "synapseName": {
+        "type": "string",
+        "defaultValue": "syn",
+        "metadata": {
+          "description": ""
+        }
+      },
+      "sqlAdministratorLogin": {
+        "type": "String"
+      },
+      "sqlAdministratorLoginPassword": {
+        "type": "securestring"
+      },
+      "userAzureLoginId": {
+        "type": "String"
+      },
+      "userAzureLoginPassword": {
+        "type": "securestring"
+      }
+    },
+    "variables": {
+      "storageAccountName": "[toLower(concat(parameters('storageAccountName'),uniquestring(resourceGroup().id)))]",
+      "dataLakeAccountName": "[toLower(concat(parameters('dataLakeAccountName'), uniquestring(resourceGroup().id)))]",
+      "keyVaultName": "[toLower(concat(parameters('keyVaultName'),uniquestring(resourceGroup().id)))]",
+      "synapseName": "[toLower(concat(parameters('synapseName'),uniquestring(resourceGroup().id)))]",
+      "functionAppName": "[concat('funcapp', uniqueString(resourceGroup().id))]",
+      "location": "[resourceGroup().location]"
+    },
+    "resources": [
+      {
+        "name": "keyVaultDeployment",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2018-05-01",
+        "dependsOn": [
+          "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+          "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+          "[resourceId('Microsoft.Resources/deployments','servicePrincipalDeployment')]"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templatelink": {
+            "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/keyvault.json"
+          },
+          "parameters": {
+              "location": {
+                  "value": "[variables('location')]"
+              },
+              "keyVaultName": {
+                  "value": "[variables('keyVaultName')]"
+              },
+              "sqlAdministratorLoginPassword": {
+                  "value": "[parameters('sqlAdministratorLoginPassword')]"
+              },
+              "dlsAccessKey": {
+                  "value": "[reference('datalakeAccountDeployment').outputs.dlsAccessKey.value]"
+              },
+              "blobConnectionString": {
+                  "value": "[reference('storageAccountDeployment').outputs.blobConnectionString.value]"
+              },
+              "aadAppClientSecret": {
+                  "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientSecret.value]"
+              }
+          }
+        }
+      },
+      {
+        "name": "servicePrincipalDeployment",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2018-05-01",
+        "dependsOn": [
+          "[resourceId('Microsoft.Resources/deployments','identityAndRole')]"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templatelink": {
+            "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/createactivedirectoryapp.json"
+          },
+          "parameters": {
+              "location": {
+                  "value": "[variables('location')]"
+              },
+              "userAzureLoginId": {
+                  "value": "[parameters('userAzureLoginId')]"
+              },
+              "userAzureLoginPassword": {
+                  "value": "[parameters('userAzureLoginPassword')]"
+              }
+          }
+        }
+      },
+      {
+        "name": "grantApplicationPermissions",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2018-05-01",
+        "dependsOn": [
+          "[resourceId('Microsoft.Resources/deployments','servicePrincipalDeployment')]"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templatelink": {
+            "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/grantapplicationpermissions.json"
+          },
+          "parameters": {
+              "location": {
+                  "value": "[variables('location')]"
+              },
+              "userAzureLoginId": {
+                  "value": "[parameters('userAzureLoginId')]"
+              },
+              "userAzureLoginPassword": {
+                  "value": "[parameters('userAzureLoginPassword')]"
+              },
+              "aadAppClientId": {
+                  "value": "[reference('servicePrincipalDeployment').outputs.aadAppClientId.value]"
+              }
+          }
+        }
+      },
+      {
+        "name": "storageAccountDeployment",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2018-05-01",
+        "dependsOn": [],
+        "properties": {
+          "mode": "Incremental",
+          "templatelink": {
+            "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/storageaccount.json"
+          },
+          "parameters": {
+              "location": {
+                  "value": "[variables('location')]"
+              },
+              "storageAccountName": {
+                  "value": "[variables('storageAccountName')]"
+              }
+          }
+        }
+      },
+      {
+        "name": "datalakeAccountDeployment",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2018-05-01",
+        "dependsOn": [],
+        "properties": {
+          "mode": "Incremental",
+          "templatelink": {
+            "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/dlsaccount.json"
+          },
+          "parameters": {
+              "location": {
+                  "value": "[variables('location')]"
+              },
+              "dataLakeAccountName": {
+                  "value": "[variables('dataLakeAccountName')]"
+              }
+          }
+        }
+      },
+      {
+        "name": "synapseDeployment",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2019-05-01",
+        "dependsOn": [],
+        "properties": {
+          "mode": "Incremental",
+          "templatelink": {
+            "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/synapseandsqlpool1.json"
+          },
+          "parameters": {
+            "location": {
+                "value": "[variables('location')]"
+            },
+            "synapseName": {
+                "value": "[variables('synapseName')]"
+            },
+            "sqlAdministratorLogin": {
+                "value": "[parameters('sqlAdministratorLogin')]"
+            },
+            "sqlAdministratorLoginPassword": {
+                "value": "[parameters('sqlAdministratorLoginPassword')]"
+            }
+          }
+        }
+      },
+      {
+        "name": "identityAndRole",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2018-05-01",
+        "dependsOn": [],
+        "properties": {
+          "mode": "Incremental",
+          "templatelink": {
+            "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/identityandrole.json"
+          },
+          "parameters": {
+              "location": {
+                  "value": "[variables('location')]"
+              }
+          }
+        }
+      },
+      {
+          "name": "keyVaultPermissionsUpdate",
+          "type": "Microsoft.Resources/deployments",
+          "apiVersion": "2018-05-01",
+          "dependsOn": [
+              "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
+              "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+              "[resourceId('Microsoft.Resources/deployments','identityAndRole')]",
+              "[resourceId('Microsoft.Resources/deployments','synapseDeployment')]"
+          ],
+          "properties": {
+            "mode": "Incremental",
+            "templatelink": {
+              "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/keyvaultpermissionsupdate.json"
+            },
+            "parameters": {
+                "location": {
+                    "value": "[variables('location')]"
+                },
+                "keyVaultName": {
+                    "value": "[variables('keyVaultName')]"
+                },
+                "functionAppName": {
+                    "value": "[reference('functionAppDeployment').outputs.functionAppName.value]"
+                },
+                "userObjectId": {
+                    "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
+                },
+                "synapseName": {
+                    "value": "[variables('synapseName')]"
+                }
+            }
+          }
+      },
+      {
+        "name": "functionAppDeployment",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2018-05-01",
+        "dependsOn": [],
+        "properties": {
+          "mode": "Incremental",
+          "templatelink": {
+            "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/functionapp.json"
+          },
+          "parameters": {
+              "location": {
+                  "value": "[variables('location')]"
+              }
+          }
+        }
+      }
+    ]
+  }

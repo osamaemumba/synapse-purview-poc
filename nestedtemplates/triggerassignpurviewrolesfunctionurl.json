@@ -28,7 +28,7 @@
             "dependsOn": [],
             "properties": {
               "forceUpdateTag": "[parameters('utcValue')]",
-              "azPowerShellVersion": "5.0",
+              "azPowerShellVersion": "6.0",
               "arguments": "[concat('-assignPurviewRolesFunctionTriggerUrl', ' ', concat('\\\"', variables('assignPurviewRolesFunctionTriggerUrl'), '\\\"'))]",
               "scriptContent": "param([string] $assignPurviewRolesFunctionTriggerUrl = $assignPurviewRolesFunctionTriggerUrl)\n\rInvoke-WebRequest $assignPurviewRolesFunctionTriggerUrl -UseBasicParsing",
               "timeout": "PT1H",
