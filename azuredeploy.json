@@ -374,8 +374,8 @@
           "userObjectId": {
               "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
           },
-          "synapseObjectId": {
-              "value": "[reference('synapseWithNewPurviewAccountDeployment').outputs.synapseObjectId.value]"
+          "synapseName": {
+              "value": "[variables('synapseName')]"
           }
         }
       }
@@ -421,8 +421,8 @@
           "userObjectId": {
               "value": "[reference('servicePrincipalDeployment').outputs.userObjectId.value]"
           },
-          "synapseObjectId": {
-              "value": "[reference('synapseWithExistingPurviewAccountDeployment').outputs.synapseObjectId.value]"
+          "synapseName": {
+              "value": "[variables('synapseName')]"
           }
         }
       }
@@ -612,7 +612,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
@@ -643,7 +643,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
@@ -673,8 +673,8 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
@@ -734,10 +734,10 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoDeploymentWithExistingPurviewAccount')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
@@ -770,7 +770,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
@@ -820,7 +820,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
@@ -876,8 +876,8 @@
       "apiVersion": "2018-05-01",
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments','runSynapseDataPipeline')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithNewPurviewAccount')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoDeploymentWithNewPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
@@ -914,8 +914,8 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
         "[resourceId('Microsoft.Resources/deployments','assignDirectoryReadersRoleToSynapseDeployment')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneDeploymentWithExistingPurviewAccount')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoDeploymentWithExistingPurviewAccount')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
