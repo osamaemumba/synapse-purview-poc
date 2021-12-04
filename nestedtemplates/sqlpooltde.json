@@ -2,6 +2,10 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+      "utcValue": {
+        "defaultValue": "[utcNow()]",
+        "type": "String"
+      },
       "location": {
         "type": "string"
       },
@@ -10,9 +14,32 @@
       }
     },
     "variables": {
-      "sqlPoolName": "demoSQLPool"
+      "sqlPoolName": "demoSQLPool",
+      "dsIdentityName": "[toLower(concat('dsId', uniquestring(resourceGroup().id)))]"
     },
     "resources": [
+      {
+        "type": "Microsoft.Resources/deploymentScripts",
+        "apiVersion": "2020-10-01",
+        "name": "waitForTde",
+        "location": "eastus",
+        "dependsOn": [],
+        "identity": {
+          "type": "UserAssigned",
+          "userAssignedIdentities": {
+            "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities', variables('dsIdentityName'))]": {}
+          }
+        },
+        "kind": "AzurePowerShell",
+        "properties": {
+          "forceUpdateTag": "[parameters('utcValue')]",
+          "azPowerShellVersion": "6.4",
+          "scriptContent": "Start-Sleep -s 180",
+          "timeout": "PT1H",
+          "cleanupPreference": "OnSuccess",
+          "retentionInterval": "P1D"
+        }
+      },
         {
             "type": "Microsoft.Synapse/workspaces/sqlPools",
             "apiVersion": "2019-06-01-preview",
@@ -21,7 +48,9 @@
             "sku": {
               "name": "DW100c"
             },
-            "dependsOn": [],
+            "dependsOn": [
+              "waitForTde"
+            ],
             "properties": {
               "createMode": "Default",
               "collation": "SQL_Latin1_General_CP1_CI_AS"
