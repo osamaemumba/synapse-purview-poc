@@ -24,7 +24,7 @@
         "type": "string"
       },
       "synapseName": {
-          "value": "[variables('synapseName')]"
+          "type": "string"
       }
     },
       "variables": {
