@@ -352,6 +352,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]"
       ],
       "properties": {
@@ -399,6 +400,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]"
       ],
       "properties": {
@@ -481,7 +483,7 @@
       "properties": {
         "mode": "Incremental",
         "templatelink": {
-          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/getPurviewResourceGroupName.json"
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/getpurviewresourcegroupname.json"
         },
         "parameters": {
             "location": {
@@ -506,6 +508,33 @@
       }
     },
     {
+      "name": "rbacRolesAssignmentToPurviewAccount",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/rbacrolesforpurview.json"
+        },
+        "parameters": {
+          "purviewAccountName": {
+            "value": "[variables('purviewAccountName')]"
+        },
+        "purviewResourceGroup": {
+            "value": "[reference('getPurviewResourceGroupName').outputs.newPurviewResourceGroup.value]"
+        }
+        }
+      }
+    },
+    {
       "condition": "[equals(parameters('newOrExistingPurviewAccount'),'new')]",
       "name": "synapseWithNewPurviewAccountDeployment",
       "type": "Microsoft.Resources/deployments",
@@ -513,6 +542,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
       ],
@@ -551,6 +581,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
       ],
@@ -615,6 +646,7 @@
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
@@ -643,6 +675,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
@@ -671,6 +704,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
@@ -728,6 +762,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
@@ -764,6 +799,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
@@ -814,6 +850,7 @@
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithExistingPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
@@ -867,6 +904,7 @@
         "[resourceId('Microsoft.Resources/deployments','assignDirectoryReadersRoleToSynapseDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','triggerAssignPurviewRolesFunctionWithNewPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
@@ -896,6 +934,7 @@
         "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
+        "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','assignDirectoryReadersRoleToSynapseDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoWithExistingPurviewAccountDeployment')]",
