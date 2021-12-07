@@ -44,16 +44,16 @@ This role is required to create the app registration/service principal and relat
 [![Deploy To Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fosamaemumba%2Fsynapse-purview-poc%2Fmain%2Fazuredeploy.json)
 
 2- The following values are needed as deployment parameters when using the OneClick Deployment ARM template:-
-    * **Resource Group:** Name of the resource group.
-    * **Region:** Azure region in which to create the resource group. All services will be deployed in this region (location).
-    * **New or existing Purview Account:** Whether to create a new Purview account or use an existing one.
-    * **Purview Account Name:** Name of the Azure Purview Account. In case of new Purview account, give a new name. To use an existing one, enter the name of existing purview account.
-    * **Data Lake Account Name:** Name of the ADSL2 storage account. This storage account will be created and registered as a data source with Purview account.
-    * **Storage Account Name:** Name of the Blob storage account. This storage account will be created and registered as a data source with Purview account.
-    * **Key Vault Name:** Name of the Azure Key vault. This is used to store Client Secret needed to perform API calls.
-    * **Factory Name:** Name for the Azure Data Factory. This Data Factory will be created and load the data into the storage accounts.
-    * **Aad App Client Id:** Client ID of the Application Registration created in prerequisite.
-    * **Aad App Client Secret:** Client Secret of the Application Registration created in prerequisite.
+  * **Resource Group:** Name of the resource group.
+  * **Region:** Azure region in which to create the resource group. All services will be deployed in this region (location).
+  * **New or existing Purview Account:** Whether to create a new Purview account or use an existing one.
+  * **Purview Account Name:** Name of the Azure Purview Account. In case of new Purview account, give a new name. To use an existing one, enter the name of existing purview account.
+  * **Data Lake Account Name:** Name of the ADSL2 storage account. This storage account will be created and registered as a data source with Purview account.
+  * **Storage Account Name:** Name of the Blob storage account. This storage account will be created and registered as a data source with Purview account.
+  * **Key Vault Name:** Name of the Azure Key vault. This is used to store Client Secret needed to perform API calls.
+  * **Synapse Name:** Name for the Azure Synapse Analytics. A dedicated SQL pool and two pipelines will be created inside this synapse account.
+  * **User Azure Login Id:** Azure login email/ID of the signed-in user.
+  * **User Azure Login Password:** Azure login password of the signed-in user.
 
 3- Click 'Review + Create'.
 
