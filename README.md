@@ -4,8 +4,6 @@
   <img src="./images/PurviewQuickStartFlowDiagram1.jpeg" width="446" height="400">
 </p>
 
-Azure Purview accounts are created using ARM templates and are configured by using the Purview REST APIs.
-
 ## Table of Contents
 
 * [Introduction](#introduction)
@@ -17,7 +15,7 @@ Azure Purview accounts are created using ARM templates and are configured by usi
 
 ## Introduction
 
-This QuickStart is a one-click solution to setup and configure Azure Purview Accounts. It creates storage accounts, loads sample data into them, connects as data sources to the Purview Account and creates Business Glossary Term with the help of ARM templates and Purview REST APIs.
+This QuickStart is a one-click solution to setup and configure Azure Purview Accounts. It deploys an Azure Synapse Analytics Workspace and connects it to the Purview account to push the data lineage. It creates storage accounts (blob and data lake storage) along with a dedicated SQL pool (in the synapse workspace), loads sample data into them, connects as data sources inside the Purview Account and finally creates and runs scans on all three registered data sources. It also reads Business Glossary Terms from a CSV file into the Purview account.
 
 Click the following button to deploy the Purview QuickStart:-
 
