@@ -17,15 +17,35 @@
 
 This QuickStart is a one-click solution to setup and configure Azure Purview Accounts. It deploys an Azure Synapse Analytics Workspace and connects it to the Purview account to push the data lineage. It creates storage accounts (blob and data lake storage) along with a dedicated SQL pool (in the synapse workspace), loads sample data into them, connects as data sources inside the Purview Account and finally creates and runs scans on all three registered data sources. It also reads Business Glossary Terms from a CSV file into the Purview account.
 
-Click the following button to deploy the Purview QuickStart:-
+## Prerequisites
+
+The (signed-in) user creating the deployment must have the following roles assigned to it:
+
+### RBAC Roles
+
+Owner (scope: subscription)
+
+**OR** 
+
+Contributor + User Access Administrator (scope: subscription)
+
+These roles are required to create this deployment which includes deployment of diffrent azure services along with RBAC role assignments.
+
+### Azure Active Directory Roles
+
+Application Administrator
+
+This role is required to create the app registration/service principal and related configurations i.e. assigning API pemissions and granting consent.
+
+## Deployment
+
+1- Click the following button to deploy the Synapse-Purview QuickStart:-
 
 [![Deploy To Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fosamaemumba%2Fsynapse-purview-poc%2Fmain%2Fazuredeploy.json)
 
-Use the OneClick Deployment button above to start the deployment. Currently it takes ~25-30 minutes for one complete deployment.
-
-* The following values are needed when using the OneClick Deployment ARM template:-
+2- The following values are needed as deployment parameters when using the OneClick Deployment ARM template:-
     * **Resource Group:** Name of the resource group.
-    * **Region:** Azure region in which to create the resource group.
+    * **Region:** Azure region in which to create the resource group. All services will be deployed in this region (location).
     * **New or existing Purview Account:** Whether to create a new Purview account or use an existing one.
     * **Purview Account Name:** Name of the Azure Purview Account. In case of new Purview account, give a new name. To use an existing one, enter the name of existing purview account.
     * **Data Lake Account Name:** Name of the ADSL2 storage account. This storage account will be created and registered as a data source with Purview account.
@@ -35,145 +55,9 @@ Use the OneClick Deployment button above to start the deployment. Currently it t
     * **Aad App Client Id:** Client ID of the Application Registration created in prerequisite.
     * **Aad App Client Secret:** Client Secret of the Application Registration created in prerequisite.
 
-## Prerequisites
+3- Click 'Review + Create'.
 
-There are two main prerequisites before deploying the Quickstart:-
-* Create Application Registration
-* Assignment of required roles
-
-### 1. Create Application Registration
-
-* Application registration needs to be created to enable authentication against the Azure Active Directory. Create an Application Registration in Azure Active Directory, which helps in establishing a trust relationship between application and the Microsoft identity platform.
-
-  The complete procedure of creating the Application Registration and copying Client id and secret is shown below:-
-
-    <p align="center">
-      <img src="./images/purview-01.gif">
-    </p>
-
-* Follow the steps below to create an application registration:-
-
-    1. In Azure Homepage, search for `Active Directory` and select `Azure Active Directory` from the drop-down list.
-
-    <p align="center">
-      <img src="./images/purview-01-01.png">
-    </p>
-
-    2. In Azure Active Directory page, select `App registrations` from the left pane.
-
-    <p align="center">
-      <img src="./images/purview-01-02.png">
-    </p>
-
-    3. Click `New registration` to create a new Application Registration.
-
-    <p align="center">
-      <img src="./images/purview-01-03.png">
-    </p>
-
-    4. Enter the following information:-
-        * `Name`: Name for the new Application Registration.
-        * `Supported account types`: Defines who can use this application
-        * `Redirect URI`: (Optional) Authentication response is sent to this URI 
-
-        **Supported account type** and **Redirect URI** can be left as default. Click on `Register` at the bottom when done.
-
-    5. After a new registration is created, copy the client id as shown below:-
-
-    <p align="center">
-      <img src="./images/purview-01-04.png">
-    </p>
-
-    6. Click on `Certificates & secrets` on the left pane:-
-
-    <p align="center">
-      <img src="./images/purview-01-05.png">
-    </p>
-
-    7. Click on `New client secret` to create a new secret id for application registration:-
-
-    <p align="center">
-      <img src="./images/purview-01-06.png">
-    </p>
-
-  8. Enter a description, select the expiration of secret id and click `Add` at the bottom:-
-
-    <p align="center">
-      <img src="./images/purview-01-07-updated.png">
-    </p>
-
-    9. Copy the secret id under `Value` column as shown below:-
-
-    <p align="center">
-      <img src="./images/purview-01-08.png">
-    </p>
-
-
-### 2. Assignment of required roles
-
-
-* To give application access to the subscription, in Azure Subscription console, add a role assignment of role `Purview Data Curator` and `Purview Data Source Administrator` to the Service Principal App registration created earlier.
-
-
-  The complete procedure of adding the required roles to the Application Registration is shown below:-
-
-    <p align="center">
-      <img src="./images/purview-02.gif">
-    </p>
-
-  The following table illustrates the required roles and permissions:-
-
-  <table>
-      <thead>
-          <tr>
-              <th>Feature/Service</th>
-              <th>Role Assigned</th>
-          </tr>
-      </thead>
-      <tbody>
-          <tr>
-              <td rowspan=2>Application Registration</td>
-              <td>Purview Data Curator</td>
-          </tr>
-          <tr>
-              <td>Purview Data Source Administrator</td>
-          </tr>
-      </tbody>
-  </table>
-
-* Follow the steps below to assign required roles to the application registration:-
-
-    1. With Application registration created, search for `Subscription` and select `Subscriptions` from the drop-down list:-
-
-    <p align="center">
-      <img src="./images/purview-02-01.png">
-    </p>
-
-    2. Select the Azure Subscription and click `Access control (IAM)`:-
-
-    <p align="center">
-      <img src="./images/purview-02-02.png">
-    </p>
-
-    3. To attach the required roles to Application registration, choose `Add` and select `Add role assignment` from the drop down list:-
-
-    <p align="center">
-      <img src="./images/purview-02-03.png">
-    </p>
-
-    4. To add role assignment, search for `Purview Data Curator` role and under `Select` search for the service principal created earlier as shown below. Click on the application registration to select it:-
-
-    <p align="center">
-      <img src="./images/purview-02-04.png">
-    </p>
-
-    5. Make sure the application registration shows under `Selected members`. Click `Save` to add role:-
-
-    <p align="center">
-      <img src="./images/purview-02-05.png">
-    </p>
-
-    6. Repeat the same procedure to add `Purview Data Source Administrator` role to the Application registration as well.
+4- On successful validation, click 'Create'.
 
 ## Post Deployment
 
