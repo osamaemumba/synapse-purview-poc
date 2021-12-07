@@ -51,7 +51,9 @@ This role is required to create the app registration/service principal and relat
   * **Data Lake Account Name:** Name of the ADSL2 storage account. This storage account will be created and registered as a data source with Purview account.
   * **Storage Account Name:** Name of the Blob storage account. This storage account will be created and registered as a data source with Purview account.
   * **Key Vault Name:** Name of the Azure Key vault. This is used to store Client Secret needed to perform API calls.
-  * **Synapse Name:** Name for the Azure Synapse Analytics. A dedicated SQL pool and two pipelines will be created inside this synapse account.
+  * **Synapse Name:** Name for the Azure Synapse Analytics. This account will be registered as a data source with Purview account. A dedicated SQL pool and two pipelines will be created inside this synapse account.
+  * **Sql Administrator Login:** Username of SQL administrator for Synapse.
+  * **Sql Administrator Login Password:** Password of SQL administrator for Synapse
   * **User Azure Login Id:** Azure login email/ID of the signed-in user.
   * **User Azure Login Password:** Azure login password of the signed-in user.
 
