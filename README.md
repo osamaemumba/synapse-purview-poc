@@ -31,6 +31,12 @@ Contributor + User Access Administrator (scope: subscription)
 
 These roles are required to create this deployment which includes deployment of diffrent azure services along with RBAC role assignments.
 
+Following two links will help you assign these RBAC roles:
+
+1- [Steps to assign an Azure role](https://docs.microsoft.com/en-us/azure/role-based-access-control/role-assignments-steps)
+
+2- [Assign Azure roles using the Azure portal](https://docs.microsoft.com/en-us/azure/role-based-access-control/role-assignments-portal?tabs=current)
+
 ### Azure Active Directory Roles
 
 Application Administrator
