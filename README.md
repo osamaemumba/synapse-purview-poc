@@ -43,6 +43,8 @@ Application Administrator
 
 This role is required to create the app registration/service principal and related configurations i.e. assigning API pemissions and granting consent.
 
+Follow the link to [Assign administrator and non-administrator roles to users with Azure Active Directory](https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-users-assign-role-azure-portal)
+
 ## Deployment
 
 1- Click the following button to deploy the Synapse-Purview QuickStart:-
