@@ -1,8 +1,5 @@
 # Azure Synapse-Purview QuickStart
 
-<p align="center">
-  <img src="./images/PurviewQuickStartFlowDiagram1.jpeg" width="446" height="400">
-</p>
 
 ## Table of Contents
 
@@ -74,52 +71,56 @@ After the deployment is complete, follow the steps given below to view the artif
 1. Click on the `Go to resource group` button and then click on the Purview account name.
 
 <p align="center">
-  <img src="./images/post-deployment/1.PNG">
+  <img src="./images/postdeploy-1.PNG">
 </p>
     
 <p align="center">
-  <img src="./images/post-deployment/2.PNG">
+  <img src="./images/postdeploy-2.PNG">
 </p>
 
 2. Click on the `Open` link inside the box labelled as 'Open Purview Studio'. The purview studio will be browsed in a new tab.
 
 <p align="center">
-  <img src="./images/post-deployment/3.PNG">
+  <img src="./images/postdeploy-3.PNG">
 </p>
 
-3. You will see that there are two sources, a few assets and a glossary term created in the Purview Studio.
+3. You will see that there are three sources, (may be a few assets) and 114 glossary terms created in the Purview Studio.
 
 <p align="center">
-  <img src="./images/post-deployment/4.png">
+  <img src="./images/postdeploy-4.PNG">
 </p>
 
-4. Now click on the `Data map` tab in the left vertical panel. You will see two sources (blob storage and data lake storage) registered as data sources.
+4. Now click on the `Data map` tab in the left vertical panel. Click on the '+' sign and you will see three sources (blob storage, data lake storage and synapse analytics) registered as data sources.
 
 <p align="center">
-  <img src="./images/post-deployment/5-a.png">
+  <img src="./images/postdeploy-5.PNG">
+</p>
+
+<p align="center">
+  <img src="./images/postdeploy-6.PNG">
 </p>
 
 5. Now click on `View details` link inside data lake source box. You will see a scan already created.
 
 <p align="center">
-  <img src="./images/post-deployment/5-b.png">
+  <img src="./images/postdeploy-7.PNG">
 </p>
 
 <p align="center">
-  <img src="./images/post-deployment/6-a.PNG">
+  <img src="./images/postdeploy-8.PNG">
 </p>
 
 6. Click on the `Scans` tab and click on the scan.
 
 
 <p align="center">
-  <img src="./images/post-deployment/6-b.PNG">
+  <img src="./images/postdeploy-9.PNG">
 </p>
 
 7. You will see a successful scan run (or may be still under progress or queued).
 
 <p align="center">
-  <img src="./images/post-deployment/6-c.PNG">
+  <img src="./images/postdeploy-10.PNG">
 </p>
 
 8. For the blob storage data source, repeat the steps 5,6 and 7.
