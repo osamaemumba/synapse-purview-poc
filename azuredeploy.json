@@ -988,5 +988,15 @@
         }
       }
     }
-  ]
+  ],
+  "outputs": {
+    "deletePurviewFunctionTriggerUrl": {
+        "type": "string",
+        "value": "[variables('deletePurviewFunctionTriggerUrl')]"
+    },
+    "configurePurviewFunctionTriggerUrl": {
+      "type": "string",
+      "value": "[variables('configurePurviewFunctionTriggerUrl')]"
+  }
+}
 }
