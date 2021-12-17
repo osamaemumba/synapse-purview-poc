@@ -10,8 +10,6 @@
 * [Prerequisites](#prerequisites)
 * [Deployment](#deployment)
 * [Post Deployment](#post-deployment)
-* [Optional Step: Removing the QuickStart resources from the Purview Account](#optional-step-removing-the-quickstart-resources-from-the-purview-account)
-* [Troubleshooting](#troubleshooting)
 
 ## Introduction
 
@@ -159,47 +157,3 @@ After the deployment is complete, resources can be deleted by following the step
   <p align="center">
     <img src="./images/purview-03-update-02.png">
   </p>
-
-
-
-
-## Troubleshooting
-
-This portion lists solutions to problems one might encounter with Purview OneClick Deployment.
-
-### Common Problems
-
-Here is a list of common problems one might encounter while deploying the template:-
-
-#### 1. Purview Account created but `no` QuickStart resources were found:
-
-In case the deployment is successful and there aren't any resources created. It can be verified by going to the Purview Account Portal. That is caused by the time Purview Account needs to set up properly. Resources can be provisioned using the `configurePurviewFunctionTriggerUrl` url from the deployment outputs. The same url needs to be used to trigger the creation function after some time, in case it does not work in first attempt. It should output `AzurePurview Creation function triggered successfully`. 
-
-The following gif illustrates the procedure for creation of resources:-
-
-<p align="center">
-  <img src="./images/purview-04.gif">
-</p>
-
-The following explains the working of deployment script in this case:-
-
-  * Unresponsive APIs return a status code of 500.
-  * The deployment script waits for 1 minute and retries to get a status code of 200.
-  * In case of success status code return, the script creates the resources.
-  * In case of status code 500 return, the script does 15 retries, with 1 minute wait each time.
-  * If APIs are still unresponsive, the deployment script completes the deployment without provisioning resources.
-
-
-
-#### 2. Failed Deployment
-
-* Deployment failed on `runDataFactory` step.
-* Deployment failed on `triggerConfigurePurviewFunction` step.
-
-In case the deployment failed, this can be caused by the Powershell modules used in the deployment script.
-Make sure that:-
-
-* The App Registration client ID and client secret are correct.
-* The application service principal has access to the `Purview Data Curator` and `Purview Data Source Administrator` roles at subscription level.
-
-If the above requirements are satisfied, rerunning the deployment should resolve this issue.
