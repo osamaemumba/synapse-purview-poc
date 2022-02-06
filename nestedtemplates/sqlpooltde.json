@@ -28,7 +28,7 @@
         "type": "Microsoft.Resources/deploymentScripts",
         "apiVersion": "2020-10-01",
         "name": "waitForTde",
-        "location": "eastus",
+        "location": "[parameters('location')]",
         "dependsOn": [],
         "identity": {
           "type": "UserAssigned",

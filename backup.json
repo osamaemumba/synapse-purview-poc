@@ -128,7 +128,7 @@
           "type": "Microsoft.Resources/deploymentScripts",
           "apiVersion": "2020-10-01",
           "name": "synapseWorkspaceArtifacts",
-          "location": "eastus",
+          "location": "[parameters('location')]",
           "dependsOn": [
             "[parameters('keyVaultName')]"
           ],
