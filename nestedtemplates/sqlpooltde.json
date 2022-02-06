@@ -34,7 +34,7 @@
         "properties": {
           "forceUpdateTag": "[parameters('utcValue')]",
           "azPowerShellVersion": "6.4",
-          "arguments": "[concat('\\\"', parameters('synapseName'), '\\\"'))]",
+          "arguments": "[concat('\\\"', parameters('synapseName'), '\\\"')]",
           "scriptContent": "param([string] $synapseName = $synapseName)\n\rInstall-Module -Name \"Az.Synapse\" -RequiredVersion 0.16.0 -Force\n\rInstall-Module -Name \"Az.Accounts\" -Force\n\rInstall-Module -Name \"Az.Resources\" -Force\n\r$PWord = ConvertTo-SecureString -String $userAzureLoginPassword -AsPlainText -Force\n\r$User = $userAzureLoginId\n\r$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord\n\rConnect-AzAccount -Credential $Credential\n\rwhile($true)\n\r{               \n\r        $tdeState = (Get-AzSynapseSqlPoolTransparentDataEncryption -WorkspaceName synlvypimjhlihek -Name demoSqlPool).State\n\r        if ($tdeState -eq \"Enabled\") {break}\n\r        else {Start-Sleep -s 60;Set-AzSynapseSqlPoolTransparentDataEncryption -WorkspaceName $synapseName -Name demoSqlPool -State Enabled;continue}\n\r}",
           "timeout": "PT1H",
           "cleanupPreference": "OnSuccess",
