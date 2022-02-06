@@ -660,6 +660,12 @@
           },
           "synapseName": {
               "value": "[variables('synapseName')]"
+          },
+          "userAzureLoginId": {
+              "value": "[parameters('userAzureLoginId')]"
+          },
+          "userAzureLoginPassword": {
+              "value": "[parameters('userAzureLoginPassword')]"
           }
         }
       }
