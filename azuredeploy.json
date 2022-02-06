@@ -381,6 +381,9 @@
           },
           "synapseName": {
               "value": "[variables('synapseName')]"
+          },
+          "synapseObjectId": {
+              "value": "[reference('synapseWithNewPurviewAccountDeployment').outputs.synapseObjectId.value]"
           }
         }
       }
@@ -429,6 +432,9 @@
           },
           "synapseName": {
               "value": "[variables('synapseName')]"
+          },
+          "synapseObjectId": {
+              "value": "[reference('synapseWithExistingPurviewAccountDeployment').outputs.synapseObjectId.value]"
           }
         }
       }
