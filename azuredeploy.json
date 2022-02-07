@@ -707,6 +707,7 @@
         "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
         "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToNewPurviewAccount')]",
@@ -740,6 +741,7 @@
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
         "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToExistingPurviewAccount')]",
         "[resourceId('Microsoft.Resources/deployments','functionAppUpdateOneWithExistingPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','functionAppUpdateTwoWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','storageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
@@ -974,7 +976,9 @@
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapsePurviewUserWithNewPurviewAccountDeployment')]"
+        
       ],
       "properties": {
         "mode": "Incremental",
@@ -1008,7 +1012,8 @@
         "[resourceId('Microsoft.Resources/deployments','datalakeAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','keyVaultDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','keyVaultPermissionsUpdate')]",
-        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]"
+        "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapsePurviewUserWithExistingPurviewAccountDeployment')]"
       ],
       "properties": {
         "mode": "Incremental",
