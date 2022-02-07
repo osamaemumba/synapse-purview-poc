@@ -350,6 +350,7 @@
         "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','getSynapseObjectId')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
         "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToNewPurviewAccount')]",
@@ -383,7 +384,7 @@
               "value": "[variables('synapseName')]"
           },
           "synapseObjectId": {
-              "value": "[reference('synapseWithNewPurviewAccountDeployment').outputs.synapseObjectId.value]"
+              "value": "[reference('getSynapseObjectId').outputs.synapseObjectId.value]"
           }
         }
       }
@@ -401,6 +402,7 @@
         "[resourceId('Microsoft.Resources/deployments','functionAppDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','sqlPoolTransparentDataEncryption')]",
+        "[resourceId('Microsoft.Resources/deployments','getSynapseObjectId')]",
         "[resourceId('Microsoft.Resources/deployments','purviewDeployment')]",
         "[resourceId('Microsoft.Resources/deployments','getPurviewResourceGroupName')]",
         "[resourceId('Microsoft.Resources/deployments','rbacRolesAssignmentToExistingPurviewAccount')]",
@@ -434,7 +436,7 @@
               "value": "[variables('synapseName')]"
           },
           "synapseObjectId": {
-              "value": "[reference('synapseWithExistingPurviewAccountDeployment').outputs.synapseObjectId.value]"
+              "value": "[reference('getSynapseObjectId').outputs.synapseObjectId.value]"
           }
         }
       }
@@ -672,6 +674,26 @@
           },
           "userAzureLoginPassword": {
               "value": "[parameters('userAzureLoginPassword')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "getSynapseObjectId",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','synapseWithNewPurviewAccountDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments','synapseWithExistingPurviewAccountDeployment')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templatelink": {
+          "uri": "https://raw.githubusercontent.com/osamaemumba/synapse-purview-poc/main/nestedtemplates/getsynapseobjectid.json"
+        },
+        "parameters": {
+          "synapseName": {
+              "value": "[variables('synapseName')]"
           }
         }
       }

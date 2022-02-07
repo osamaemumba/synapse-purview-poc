@@ -1,0 +1,17 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "synapseName": {
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [],
+    "outputs": {
+        "synapseObjectId": {
+            "type": "String",
+            "value": "[reference(concat('Microsoft.Synapse/workspaces/', parameters('synapseName')), '2019-06-01-preview', 'Full').identity.principalId]"
+        }
+    }
+}
