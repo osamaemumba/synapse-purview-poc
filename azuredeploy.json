@@ -566,7 +566,7 @@
             "value": "[parameters('purviewAccountName')]"
         },
         "purviewResourceGroup": {
-            "value": "[reference('getPurviewResourceGroupName').outputs.newPurviewResourceGroup.value]"
+            "value": "[reference('getPurviewResourceGroupName').outputs.existingPurviewResourceGroup.value]"
         }
         }
       }
